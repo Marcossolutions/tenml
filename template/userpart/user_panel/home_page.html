@@ -1,0 +1,105 @@
+{% extends 'userpart/base_user.html' %}
+{% load static %}
+
+{% block content %}
+    
+    <section class="h-[750px] px-4 mt-4">
+        <img class="h-[750px] w-full " src="{% static 'userside/images/front_page2.jpg' %}" alt="">
+    </section>
+    <section class="w-full px-12 pt-12">
+        <a href="{% url 'product:shop_page' %}">
+            <p class="text-white font-semibold text-2xl text-right hover:underline">
+                View All Products
+                <span class="material-symbols-outlined">trending_flat</span>
+            </p>
+        </a>
+        <div class="mr-auto ml-auto w-[1008px]">
+            <p class="text-white text-center text-4xl font-bold font-medium">Popular Products</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-8">
+                {% for product in products %}
+                <div class="bg-[#e4e1d8] rounded-md drop-shadow-md cursor-pointer">
+                    <a href="{% url 'product:product_detail_page' product.id %}">
+                        {% if product.thumbnail %}
+                        <img class="h-[240px] w-full rounded-md object-cover" src="{{ product.thumbnail.url }}" alt="{{ product.product_name }}">
+                        {% else %}
+                        <img class="h-[240px] w-full rounded-md object-cover" src="{% static 'path/to/default/image.jpg' %}" alt="{{ product.product_name }}">
+                        {% endif %}
+                    </a>
+                    <div class="p-2">
+                        <p class="text-center text-base font-extrabold">{{ product.product_name }}</p>
+                        <p class="text-center text-sm font-extrabold">₹{{ product.price }}</p>
+                        {% if product.offer_price %}
+                        <p class="text-center text-sm font-extrabold text-red-500">Offer Price: ₹{{ product.offer_price }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    
+    
+    
+    <section>
+        <p class="text-white text-3xl font-normal text-center my-12">What shopex offer!</p>
+        <div class="bg-[#e4e1d8] py-4">
+            <div class="w-[1008px] mr-auto ml-auto">
+                <div class="flex justify-between w-full mt-12">
+                    <div class="w-[280px] h-[350px] bg-[#e4e1d8] rounded-sm">
+                        <img class="w-full rounded-sm h-[213px]" src="{% static 'userside/images/Call driver.png' %}" alt="">
+                        <p class="font-bold text-2xl text-center">24 hours delivery</p>
+                        <p class="text-center text-sm font-semibold px-6">We are commit to server you 24 hours our
+                            delivery
+                            is available 24x7 making customer to order accordingly</p>
+                    </div>
+                    <div class="w-[280px] h-[350px] bg-[#e4e1d8] rounded-sm">
+                        <img class="w-full rounded-sm h-[213px] object-cover" src="{% static 'userside/images/Ice.png' %}"
+                            alt="">
+                        <p class="font-bold text-2xl text-center">Ice and soft drinks</p>
+                        <p class="text-center text-sm font-semibold px-6">We offer a wide range of soft drink of your
+                            choice
+                            and also offer ice cubes making your drinks party awesome</p>
+                    </div>
+                    <div class="w-[280px] h-[350px] bg-[#e4e1d8] rounded-sm">
+                        <img class="w-full rounded-sm h-[213px]" src="{% static 'userside/images/SnacksItems.png' %}" alt="">
+                        <p class="font-bold text-2xl text-center">Snacks</p>
+                        <p class="text-center text-sm font-semibold px-6">We offer a range of snacks of your liking for
+                            customers to enjoy each sip of the drink more delitfull and tasty</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <section class="h-[420px] my-20 relative px-2 ">
+        <img class="h-[420px] w-full object-cover rounded-lg" src= "{% static 'userside/images/final.jpg' %}"
+            alt="">
+        <div class="flex items-end justify-center py-4 h-full absolute top-0 right-[50% left-[50%]">
+            <div class="flex w-96 bg-white py-2 rounded-lg px-1">
+                <input class="w-full hover:border-none outline-none px-2" type="text" placeholder="Enter your email">
+                <button class="bg-[#e4e1d8] text-black font-semibold text-sm py-2 px-4 rounded-xl">Subscribe</button>
+            </div>
+        </div>
+    </section>
+    <section class="w-full py-16">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="text-white text-4xl font-bold text-center mb-12">Top Categories</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                {% for category in categories %}
+                <div class="flex flex-col items-center">
+                    <div class="h-60 w-60 rounded-full bg-zinc-800 overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105">
+                        <img class="h-full w-full object-cover" src="{{ category.category_image.url }}" alt="{{ category.category_name }}">
+                    </div>
+                    <p class="text-2xl font-semibold text-center text-white mt-4">{{ category.category_name }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="text-right mt-8">
+                <a href="{% url 'category:category_list' %}" class="inline-flex items-center text-white font-semibold text-xl hover:underline">
+                    VIEW ALL CATEGORIES
+                    <span class="material-symbols-outlined ml-2">trending_flat</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+{% endblock %}

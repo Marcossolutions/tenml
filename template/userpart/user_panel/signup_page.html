@@ -1,0 +1,89 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ten-ml Signup</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gradient-to-r from-pink-200 to-purple-200 flex items-center justify-center min-h-screen font-['Poppins']">
+    <div class="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-md transform hover:scale-105 transition-transform duration-300">
+        <div class="text-center mb-6">
+            <h2 class="text-4xl font-bold text-purple-600 mb-2">Create an Account</h2>
+            <p class="text-gray-500">Join us and start your journey!</p>
+        </div>
+        <form method="post" class="space-y-2">
+            {% csrf_token %}
+
+            <div>
+                <label for="{{ form.username.id_for_label }}" class="block text-gray-700 text-sm font-medium mb-2">{{ form.username.label }}</label>
+                {{ form.username }}
+                {% if form.username.errors %}
+                    <p class="text-red-600 text-sm">{{ form.username.errors|striptags }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.email.id_for_label }}" class="block text-gray-700 text-sm font-medium mb-2">{{ form.email.label }}</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <p class="text-red-600 text-sm">{{ form.email.errors|striptags }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.phone_number.id_for_label }}" class="block text-gray-700 text-sm font-medium mb-2">{{ form.phone_number.label }}</label>
+                {{ form.phone_number }}
+                {% if form.phone_number.errors %}
+                    <p class="text-red-600 text-sm">{{ form.phone_number.errors|striptags }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.password.id_for_label }}" class="block text-gray-700 text-sm font-medium mb-2">{{ form.password.label }}</label>
+                {{ form.password }}
+                {% if form.password.errors %}
+                    <p class="text-red-600 text-sm">{{ form.password.errors|striptags }}</p>
+                {% endif %}
+            </div>
+
+            <div>
+                <label for="{{ form.confirm_password.id_for_label }}" class="block text-gray-700 text-sm font-medium mb-2">{{ form.confirm_password.label }}</label>
+                {{ form.confirm_password }}
+                {% if form.confirm_password.errors %}
+                    <p class="text-red-600 text-sm">{{ form.confirm_password.errors|striptags }}</p>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-full font-semibold hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50">
+                Sign Up
+            </button>
+
+            <div class="text-center text-gray-600">
+                <p>Already have an account? <a href="{% url 'login_page' %}" class="text-purple-500 hover:underline font-medium">Sign in now</a></p>
+            </div>
+        </form>
+    </div>
+
+    <style>
+        form input[type="text"], 
+        form input[type="email"], 
+        form input[type="password"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 9999px;
+            border: 2px solid #d8b4fe;
+            transition: border-color 0.3s ease;
+        }
+
+        form input[type="text"]:focus, 
+        form input[type="email"]:focus, 
+        form input[type="password"]:focus {
+            outline: none;
+            border-color: #a855f7;
+        }
+    </style>
+</body>
+</html>

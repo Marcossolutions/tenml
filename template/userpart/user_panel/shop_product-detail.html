@@ -1,0 +1,369 @@
+﻿{% extends 'userpart/base_user.html' %}
+
+{% load static %}
+
+{% block content %}
+        
+
+<style>
+    body {
+        background-color: #212121;
+        font-family: "Noto Sans", sans-serif;
+        color: #e4e1d8;
+    }
+    .site-header, .site-footer {
+        background-color: #e4e1d8 !important;
+        color: #212121 !important;
+    }
+    .product-image-container {
+        width: 500px;
+        height: 500px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .product-image {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+    .thumbnail-container {
+        width: 500px;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    .thumbnail {
+        width: 80px;
+        height: 80px;
+        object-fit: cover;
+        display: inline-block;
+        margin-right: 10px;
+        cursor: pointer;
+    }
+    .product-info-container {
+        width: 500px;
+        height: 600px;
+        overflow-y: auto;
+    }
+    .star-rating {
+        display: inline-block;
+        font-size: 0;
+        position: relative;
+        unicode-bidi: bidi-override;
+        width: 150px;
+        height: 30px;
+        overflow: hidden;
+    }
+    .star-rating > * {
+        font-size: 30px;
+        display: inline-block;
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+    .star-rating > *:before {
+        content: "★★★★★";
+    }
+    .star-rating > .stars-fill {
+        color: gold;
+        width: 0;
+        overflow: hidden;
+    }
+    .star-rating input {
+        z-index: 1;
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 100%;
+        width: 20%;
+    }
+    .variant-btn.selected {
+        border: 2px solid white;
+        font-weight: bold;
+    }
+    .star-rating input:nth-child(1) { left: 0; }
+    .star-rating input:nth-child(2) { left: 20%; }
+    .star-rating input:nth-child(3) { left: 40%; }
+    .star-rating input:nth-child(4) { left: 60%; }
+    .star-rating input:nth-child(5) { left: 80%; }
+</style>
+<main class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold mb-2">{{ product.product_name }}</h1>
+    <p class="text-sm mb-8">
+        <a href="{% url 'home' %}" class="hover:underline">Home</a> &gt; 
+        <a href="{% url 'product:shop_page' %}" class="hover:underline">Products</a> &gt; 
+        {{ product.product_name }}
+    </p>
+
+    <div class="flex flex-col lg:flex-row gap-8 justify-center">
+        <div class="product-images">
+            <div class="product-image-container bg-[#2a2a2a] rounded-lg mb-4">
+                {% if product.thumbnail %}
+                    <img id="main-image" src="{{ product.thumbnail.url }}" class="product-image" alt="{{ product.product_name }}">
+                {% else %}
+                    <img id="main-image" src="{% static 'path/to/default/image.jpg' %}" class="product-image" alt="{{ product.product_name }}">
+                {% endif %}
+            </div>
+            <div class="thumbnail-container bg-[#2a2a2a] rounded-lg p-2">
+                {% for image in product.images.all %}
+                    <img src="{{ image.images.url }}" class="thumbnail rounded-md" alt="Additional Image" onclick="changeMainImage(this.src)">
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="product-info-container bg-[#2a2a2a] p-6 rounded-lg">
+            <p class="text-lg text-gray-400 mb-2">{{ product.product_category.category_name }}</p>
+            <div class="variant-info my-4">
+                <p id="variant-price" class="text-xl font-semibold">Price: ₹{{ product.productvariant_set.first.variant_price }}</p>
+                <p id="variant-stock" class="text-md font-medium">Stock: {{ product.productvariant_set.first.variant_stock }} units</p>
+            </div>
+            <p class="mb-4 text-gray-300">{{ product.product_decription }}</p>
+        
+            <!-- Variant Size Buttons -->
+<div class="variant-sizes my-4">
+    <label for="variant-size" class="block mb-2 font-semibold">Select Size:</label>
+    <div id="variant-size">
+        {% for variant in product.productvariant_set.all %}
+            <button 
+                class="variant-btn px-4 py-2 m-2 border rounded {% if forloop.first %}selected{% endif %} {{ variant.variant_status|yesno:'bg-green-500:bg-red-500' }}"
+                data-variant-id="{{ variant.id }}"
+                data-variant-price="{{ variant.variant_price }}"
+                data-variant-stock="{{ variant.variant_stock }}"
+                onclick="updateSelectedVariant(this)">
+                {{ variant.size }}
+            </button>
+        {% endfor %}
+    </div>
+</div>
+        
+            <div class="flex items-center mb-4">
+                <!-- Add to Cart Button -->
+                <form id="add-to-cart-form" method="POST" action="{% url 'cart:add_to_cart' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                    <input type="hidden" name="variant_id" id="variant-id" value="">
+                    <input type="hidden" name="quantity" id="quantity" value="1">
+                    <button type="button" id="add-to-cart-btn" class="add-to-cart-btn bg-blue-500 text-white px-4 py-2 rounded transition-all duration-300">
+                        Add to Cart
+                    </button>
+                </form>
+                
+            </div>
+            <p id="stock-status" class="text-green-500">
+                {% if product.productvariant_set.first.variant_stock > 0 %}
+                    In Stock
+                {% else %}
+                    <span class="text-red-500">Out of Stock</span>
+                {% endif %}
+            </p>
+            <p class="text-gray-400 mt-2">Free shipping on orders over ₹500</p>
+            
+            <div class="mt-6">
+                <h3 class="text-xl font-semibold mb-2">Product Details</h3>
+                <ul class="list-disc list-inside text-gray-300">
+                    <li>Category: {{ product.product_category.category_name }}</li>
+                    <li>Status: {{ product.status }}</li>
+                    <li>Created At: {{ product.created_at|date:"M j, Y, g:i a" }}</li>
+                    <li>Last Updated: {{ product.updated_at|date:"M j, Y, g:i a" }}</li>
+                </ul>
+            </div>
+        </div>
+        
+    </div>
+
+    <div class="reviews mt-12 max-w-3xl mx-auto">
+        <h2 class="text-2xl font-semibold mb-4">Customer Reviews</h2>
+    
+        <!-- Review submission form -->
+        <form id="review-form" class="bg-[#2a2a2a] p-4 rounded-lg mb-6">
+            {% csrf_token %}
+            <h3 class="text-xl font-semibold mb-2">Write a Review</h3>
+            <div class="mb-4">
+                <label for="rating" class="block mb-2">Your Rating:</label>
+                <div class="star-rating">
+                    <div class="stars-fill"></div>
+                    <input type="radio" name="rating" value="1" required>
+                    <input type="radio" name="rating" value="2">
+                    <input type="radio" name="rating" value="3">
+                    <input type="radio" name="rating" value="4">
+                    <input type="radio" name="rating" value="5">
+                </div>
+            </div>
+            <div class="mb-4">
+                <label for="review" class="block mb-2">Your Review:</label>
+                <textarea id="review" name="review" rows="4" class="w-full p-2 bg-[#3a3a3a] rounded-md text-white" required></textarea>
+            </div>
+            <button type="submit" class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors">Submit Review</button>
+        </form>
+    
+        <!-- Display average rating -->
+        <div class="mb-4">
+            <h3 class="text-xl font-semibold">Average Rating:</h3>
+            <p class="text-2xl">4.5</p>
+        </div>
+    
+        <!-- Display reviews -->
+        <div class="review-item mb-6">
+            <div class="bg-[#2a2a2a] p-4 rounded-lg">
+                <div class="flex items-center mb-2">
+                    <span class="font-semibold text-lg">John Doe</span>
+                    <div class="ml-4 star-rating">
+                        <div class="stars-fill" style="width: 80%;"></div>
+                    </div>
+                </div>
+                <p class="text-gray-300">Great product! Highly recommended.</p>
+            </div>
+        </div>
+    
+    </div>
+
+</main>
+
+ <!-- Include SweetAlert2 Library -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    let selectedVariantId = null;
+
+function updateSelectedVariant(button) {
+    selectedVariantId = button.getAttribute('data-variant-id');
+    document.getElementById('variant-id').value = selectedVariantId;
+    
+    // Update price and stock display
+    document.getElementById('variant-price').textContent = 'Price: $' + button.getAttribute('data-variant-price');
+    document.getElementById('variant-stock').textContent = 'Stock: ' + button.getAttribute('data-variant-stock') + ' units';
+    
+    // Highlight the selected button
+    document.querySelectorAll('.variant-btn').forEach(btn => {
+        btn.classList.remove('selected');
+        btn.classList.remove('bg-green-500');
+        btn.classList.add(btn.getAttribute('data-variant-stock') > 0 ? 'bg-blue-500' : 'bg-red-500');
+    });
+    button.classList.add('selected');
+    button.classList.remove('bg-blue-500', 'bg-red-500');
+    button.classList.add('bg-green-500');
+    // Update stock status
+    const stockStatus = document.getElementById('stock-status');
+    const variantStock = parseInt(button.getAttribute('data-variant-stock'));
+    const addToCartBtn = document.getElementById('add-to-cart-btn');
+    if (variantStock > 0) {
+        stockStatus.textContent = 'In Stock';
+        stockStatus.className = 'text-green-500';
+        addToCartBtn.disabled = false;
+        addToCartBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        addToCartBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
+    } else {
+        stockStatus.textContent = 'Out of Stock';
+        stockStatus.className = 'text-red-500';
+        addToCartBtn.disabled = true;
+        addToCartBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
+        addToCartBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
+    }
+
+}
+
+function addToCart() {
+    if (!selectedVariantId) {
+        Swal.fire({
+            position: 'top-end',
+            icon: 'error',
+            title: 'Please select a size',
+            showConfirmButton: false,
+            timer: 2000,
+            toast: true
+        });
+        return;
+    }
+
+    const form = document.getElementById('add-to-cart-form');
+    const formData = new FormData(form);
+    formData.set('variant_id', selectedVariantId);
+
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', form.action, true);
+    xhr.setRequestHeader('X-CSRFToken', form.querySelector('[name=csrfmiddlewaretoken]').value);
+    xhr.onreadystatechange = function() {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+            const response = JSON.parse(xhr.responseText);
+            if (response.status === 'success') {
+                Swal.fire({
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Added to cart!',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    toast: true
+                });
+            } else {
+                Swal.fire({
+                    position: 'top-end',
+                    icon: 'error',
+                    title: response.message || 'Failed to add to cart',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    toast: true
+                });
+            }
+        }
+    };
+    xhr.send(formData);
+}
+
+
+document.addEventListener('DOMContentLoaded', function() {
+    const firstVariantButton = document.querySelector('.variant-btn');
+    if (firstVariantButton) {
+        updateSelectedVariant(firstVariantButton);
+    }
+
+    const addToCartBtn = document.getElementById('add-to-cart-btn');
+    addToCartBtn.addEventListener('click', function(e) {
+        if (this.disabled) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Out of Stock',
+                text: 'This variant is currently out of stock.',
+                icon: 'warning',
+                confirmButtonText: 'OK'
+            });
+        } else {
+            addToCart();
+        }
+    });
+});
+ 
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        const firstVariantButton = document.querySelector('.variant-btn');
+        if (firstVariantButton) {
+            updateSelectedVariant(firstVariantButton);
+        }
+    });
+</script>
+
+<script>
+    function changeMainImage(src) {
+        document.getElementById("main-image").src = src;
+    }
+
+</script>
+<script>
+// JavaScript to handle size selection and price/stock updates
+const variantButtons = document.querySelectorAll('.variant-btn');
+const priceDisplay = document.getElementById('variant-price');
+const stockDisplay = document.getElementById('variant-stock');
+const variantIdInput = document.getElementById('variant-id');
+
+variantButtons.forEach(button => {
+    button.addEventListener('click', function() {
+        const price = this.getAttribute('data-variant-price');
+        const stock = this.getAttribute('data-variant-stock');
+        priceDisplay.textContent = `Price: $${price}`;
+        stockDisplay.textContent = `Stock: ${stock} units`;
+        variantIdInput.value = this.value;
+    });
+});
+</script>
+
+{% endblock content %}

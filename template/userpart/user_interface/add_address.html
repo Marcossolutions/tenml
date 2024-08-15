@@ -1,0 +1,123 @@
+﻿{% extends 'userpart/base_user.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto mt-10">
+    <div class="bg-[#e4e1d8] p-8 rounded-lg shadow-lg max-w-xl mx-auto">
+        <h2 class="text-3xl font-semibold text-center mb-6">Add New Address</h2>
+
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Display Form Fields -->
+        
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
+                <input type="text" id="name" name="name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="{{ form.name.value|default_if_none:'' }}">
+                {% if form.name.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {% for error in form.name.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        
+            <div>
+                <label for="house_name" class="block text-sm font-medium text-gray-700">House Name</label>
+                <input type="text" id="house_name" name="house_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="{{ form.house_name.value|default_if_none:'' }}">
+                {% if form.house_name.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {% for error in form.house_name.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        
+            <div>
+                <label for="street_name" class="block text-sm font-medium text-gray-700">Street Name</label>
+                <input type="text" id="street_name" name="street_name" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="{{ form.street_name.value|default_if_none:'' }}">
+                {% if form.street_name.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {% for error in form.street_name.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        
+            <div>
+                <label for="pin_number" class="block text-sm font-medium text-gray-700">PIN Number</label>
+                <input type="number" id="pin_number" name="pin_number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="{{ form.pin_number.value|default_if_none:'' }}">
+                {% if form.pin_number.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {% for error in form.pin_number.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        
+            <div>
+                <label for="district" class="block text-sm font-medium text-gray-700">District</label>
+                <input type="text" id="district" name="district" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="{{ form.district.value|default_if_none:'' }}">
+                {% if form.district.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {% for error in form.district.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        
+            <div>
+                <label for="state" class="block text-sm font-medium text-gray-700">State</label>
+                <input type="text" id="state" name="state" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="{{ form.state.value|default_if_none:'' }}">
+                {% if form.state.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {% for error in form.state.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        
+            <div>
+                <label for="country" class="block text-sm font-medium text-gray-700">Country</label>
+                <input type="text" id="country" name="country" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="{{ form.country.value|default_if_none:'' }}">
+                {% if form.country.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {% for error in form.country.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        
+            <div>
+                <label for="phone_number" class="block text-sm font-medium text-gray-700">Phone Number</label>
+                <input type="text" id="phone_number" name="phone_number" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" value="{{ form.phone_number.value|default_if_none:'' }}">
+                {% if form.phone_number.errors %}
+                    <div class="text-red-500 text-sm mt-1">
+                        {% for error in form.phone_number.errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        
+            <div class="flex items-center">
+                <input type="checkbox" id="status" name="status" class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" {% if form.status.value %} checked {% endif %}>
+                <label for="status" class="ml-2 block text-sm text-gray-900">Set as default address</label>
+            </div>
+        
+            <!-- Submit Button -->
+            <div class="flex justify-center">
+                <button type="submit" class="bg-[#212121] text-white px-6 py-3 rounded-lg hover:bg-[#333333] transition">Save Address</button>
+            </div>
+        </form>
+        
+    </div>
+</div>
+{% endblock %}

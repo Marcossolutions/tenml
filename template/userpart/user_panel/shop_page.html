@@ -1,0 +1,133 @@
+{% extends 'userpart/base_user.html' %}
+
+{% load static %}
+
+{% block content %}
+
+
+<body class="bg-gray-900 text-white">
+   
+    <h1 class="text-white text-4xl ml-10 mt-12">Products</h1>
+    <div class="bg-gray-800 py-3">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between space-x-2 text-gray-400">
+                <div class="flex items-center space-x-2">
+                    <a href="{% url 'home' %}" rel="nofollow" class="hover:text-gray-200">Home</a>
+                    <span>/</span>
+                    <span>Shop</span>
+                </div>
+                <div>
+                    <form method="GET" action="{% url 'product:search_product' %}" class="flex items-center space-x-2">
+                        <input type="text" name="q" class="bg-gray-700 text-white p-2 rounded-l-md outline-none"
+                            placeholder="Search products" value="{{ request.GET.q }}">
+                        <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-md">Search</button>
+                    </form>
+                </div>
+            </div>
+           
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main py-8">
+        <section class="product-tabs">
+            <div class="container mx-auto px-4">
+                <div class="flex flex-wrap -mx-4">
+                    <!-- Sidebar -->
+                    <div class="w-full lg:w-1/4 px-4 mb-8 lg:mb-0">
+                        <form id="filter-form">
+                            <!-- Category Widget -->
+                            <div class="mb-8">
+                                <h5 class="text-xl font-semibold mb-4">Category</h5>
+                                <div class="space-y-2">
+                                    {% for category in categories %}
+                                        <div>
+                                            <input class="form-check-input filter-checkbox" type="checkbox" name="category" id="category{{ category.id }}" value="{{ category.id }}"
+                                                {% if category.id|stringformat:"s" in selected_categories %}checked{% endif %}>
+                                            <label class="form-check-label" for="category{{ category.id }}">
+                                                <span>{{ category.category_name }}</span>
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- Sort By Widget -->
+                            <div class="mb-8">
+                                <h5 class="text-xl font-semibold mb-4">Sort by</h5>
+                                <select name="sort" id="sort-select" class="w-full bg-gray-700 text-white p-2 rounded">
+                                    <option value="featured" {% if current_sort == 'featured' %}selected{% endif %}>Featured</option>
+                                    <option value="price_low_high" {% if current_sort == 'price_low_high' %}selected{% endif %}>Price: Low to High</option>
+                                    <option value="price_high_low" {% if current_sort == 'price_high_low' %}selected{% endif %}>Price: High to Low</option>
+                                    <option value="new_arrivals" {% if current_sort == 'new_arrivals' %}selected{% endif %}>New Arrivals</option>
+                                    <option value="name_az" {% if current_sort == 'name_az' %}selected{% endif %}>Name: A to Z</option>
+                                    <option value="name_za" {% if current_sort == 'name_za' %}selected{% endif %}>Name: Z to A</option>
+                                </select>
+                            </div>
+
+                            <!-- Price Range Widget -->
+                            <div>
+                                <h5 class="text-xl font-semibold mb-4">Price Range</h5>
+                                <div class="mb-4">
+                                    <label for="min_price" class="block text-gray-400 mb-1">Min Price:</label>
+                                    <input type="number" class="w-full bg-gray-700 text-white p-2 rounded" id="min_price" name="min_price" value="{{ min_price }}">
+                                </div>
+                                <div>
+                                    <label for="max_price" class="block text-gray-400 mb-1">Max Price:</label>
+                                    <input type="number" class="w-full bg-gray-700 text-white p-2 rounded" id="max_price" name="max_price" value="{{ max_price }}">
+                                </div>
+                            </div>
+                            <div class="mt-6">
+                                <button type="submit"
+                                    class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded">Apply
+                                    Filter</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Product List -->
+                    <div class="w-full lg:w-3/4 px-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="product-list">
+                            {% for product in products %}
+                                <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+                                    <div class="product-img">
+                                        <a href="{% url 'product:product_detail_page' product.id %}">
+                                            {% if product.thumbnail %}
+                                                <img class="w-full h-64 object-cover" src="{{ product.thumbnail.url }}" alt="{{ product.product_name }}">
+                                            {% else %}
+                                                <img class="w-full h-64 object-cover" src="{% static 'images/No_Image-1024.webp' %}" alt="{{ product.product_name }}">
+                                            {% endif %}
+                                        </a>
+                                    </div>
+                                    <div class="p-4 text-center">
+                                        <h5 class="text-lg font-semibold">
+                                            <a href="{% url 'product:product_detail_page' product.id %}" class="hover:underline">{{ product.product_name }}</a>
+                                        </h5>
+                                        <p class="text-gray-400">{{ product.product_category.category_name }}</p>
+                                        <div class="product-price mt-2">
+                                            {% if product.offer_price %}
+                                                <span class="text-lg font-semibold text-red-500">₹ {{ product.offer_price }}</span>
+                                                <span class="line-through text-gray-500 ml-2">₹ {{ product.price }}</span>
+                                            {% else %}
+                                                <span class="text-lg font-semibold">₹ {{ product.price }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% empty %}
+                                <div class="col-span-1 sm:col-span-2 lg:col-span-4">
+                                    <p class="text-center">No Products Found Yet</p>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+   
+</body>
+
+</html>
+{% endblock %}

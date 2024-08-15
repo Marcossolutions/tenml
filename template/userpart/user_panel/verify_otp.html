@@ -1,0 +1,184 @@
+﻿{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ten-ml OTP Verification</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body class="bg-gradient-to-r from-pink-200 to-purple-200 flex items-center justify-center min-h-screen font-['Poppins']">
+    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-md transform hover:scale-105 transition-transform duration-300">
+        <div class="text-center mb-8">
+            <h2 class="text-4xl font-bold text-purple-600 mb-2">Verify OTP</h2>
+            <p class="text-gray-500">Please enter the OTP sent to your email address.</p>
+        </div>
+
+        <form method="post" class="space-y-4">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="mb-4 bg-red-100 text-red-700 p-4 rounded-lg text-sm">
+                    {% for error in form.non_field_errors %}
+                        <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            {% endif %}
+
+            <div>
+                <label for="{{ form.otp.id_for_label }}" class="block text-gray-700 text-sm font-medium mb-2">Enter OTP</label>
+                {{ form.otp }}
+            </div>
+
+            <button id="verify-otp" type="submit" class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-full font-semibold hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50">
+                Verify OTP
+            </button>
+        </form>
+
+        <div id="otp-timer" class="text-muted text-center mt-4 text-gray-600">02:00</div>
+        <div id="resend-otp" class="text-center mt-2" style="display: none;">
+            <a href="#" class="text-purple-500 hover:underline font-medium">Resend OTP</a>
+        </div>
+    </div>
+
+    <style>
+        /* Style for form inputs */
+        form input[type="text"], 
+        form input[type="email"], 
+        form input[type="password"], 
+        form input[type="number"] { /* Added number type for OTP */
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 9999px;
+            border: 2px solid #d8b4fe;
+            transition: border-color 0.3s ease;
+        }
+
+        form input[type="text"]:focus, 
+        form input[type="email"]:focus, 
+        form input[type="password"]:focus, 
+        form input[type="number"]:focus { /* Added number type for OTP */
+            outline: none;
+            border-color: #a855f7;
+        }
+
+        form label {
+            margin-bottom: 0.5rem;
+            color: #4a5568; /* text-gray-700 */
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500; /* font-medium */
+        }
+    </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const otpTimerDuration = 120000; // 2 minutes in milliseconds
+            const timerElement = document.getElementById('otp-timer');
+            const resendButton = document.getElementById('resend-otp');
+            const verifyButton = document.getElementById('verify-otp');
+
+            function updateTimer() {
+                const currentTime = new Date().getTime();
+                const startTime = parseInt(localStorage.getItem('otpStartTime'), 10);
+                let timeRemaining = Math.max(0, otpTimerDuration - (currentTime - startTime));
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    timerElement.textContent = '00:00';
+                    resendButton.style.display = 'block';
+                    verifyButton.style.display = 'none';
+                    localStorage.removeItem('otpStartTime');
+                } else {
+                    const minutes = Math.floor((timeRemaining % (1000 * 3600)) / (1000 * 60));
+                    const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+                    timerElement.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                    resendButton.style.display = 'none';
+                    verifyButton.style.display = 'block';
+                }
+            }
+
+            function startTimer() {
+                const now = new Date().getTime();
+                localStorage.setItem('otpStartTime', now);
+                setInterval(updateTimer, 1000);
+            }
+
+            startTimer();
+
+            resendButton.addEventListener('click', function () {
+                fetch('{% url "resend_otp" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({})
+                }).then(response => {
+                    if (response.ok) {
+                        startTimer();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+
+</html>
+
+{% comment %} <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const otpTimerDuration = 120000; // 2 minutes in milliseconds
+        const timerElement = document.getElementById('otp-timer');
+        const resendButton = document.getElementById('resend-otp');
+        const verifyButton = document.getElementById('verify-otp');
+    
+        function updateTimer() {
+            const currentTime = new Date().getTime();
+            const startTime = parseInt(localStorage.getItem('otpStartTime'), 10);
+            let timeRemaining = Math.max(0, otpTimerDuration - (currentTime - startTime));
+    
+            if (timeRemaining <= 0) {
+                timerElement.textContent = '00:00';
+                resendButton.style.display = 'block';
+                verifyButton.style.display = 'none';
+            } else {
+                const minutes = Math.floor((timeRemaining % (1000 * 3600)) / (1000 * 60));
+                const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
+                timerElement.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+                resendButton.style.display = 'none';
+                verifyButton.style.display = 'block';
+            }
+        }
+    
+        function startTimer() {
+            const startTime = parseInt(localStorage.getItem('otpStartTime'), 10);
+            if (!startTime) {
+                const now = new Date().getTime();
+                localStorage.setItem('otpStartTime', now);
+            }
+            updateTimer();
+            setInterval(updateTimer, 1000);
+        }
+    
+        startTimer();
+    
+        resendButton.addEventListener('click', function () {
+            fetch('{% url "resend_otp" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({})
+            }).then(response => {
+                if (response.ok) {
+                    // Reset the timer start time and show the verify button
+                    localStorage.removeItem('otpStartTime'); // Clear the old start time
+                    startTimer();
+                }
+            });
+        });
+    });
+</script> {% endcomment %}

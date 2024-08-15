@@ -1,0 +1,132 @@
+{% extends 'adminpart/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="content-main">
+    <div class="content-header">
+        <h2 class="content-title">Category</h2>
+        <div>
+            <a href="{% url 'category:add-category' %}" class="btn btn-primary"><i class="material-icons md-plus"></i> Create new</a>
+        </div>
+    </div>
+    <div class="card mb-4">
+        <header class="card-header">
+            <div class="row gx-3">
+                <div class="col-lg-4 col-md-6 me-auto">
+                    <input type="text" placeholder="Search..." class="form-control">
+                </div>
+                <div class="col-lg-2 col-md-3 col-6">
+                    <select class="form-select">
+                        <option>Status</option>
+                        <option>Active</option>
+                        <option>Disabled</option>
+                        <option>Show all</option>
+                    </select>
+                </div>
+            </div>
+        </header> 
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Ser No</th>
+                            <th>Category Name</th>
+                            <th>List / Unlist</th>
+                            <th class="text-center">Edit / Delete</th>  
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for category in categories %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td>{{ category.category_name }}</td>  
+                            <td>
+                                {% if category.is_listed %}
+                                <span class="badge rounded-pill alert-success">Listed</span>
+                                {% else %}
+                                <span class="badge rounded-pill alert-danger">Unlisted</span>
+                                {% endif %}
+                            </td>
+                            <td class= "text-center">
+                                <a href="{% url 'category:edit_category' category.id %}" class="btn btn-outline-primary">
+                                    <i class="fas fa-edit"></i> 
+                                </a>
+                                <button class="btn {% if category.is_listed %}btn-outline-danger{% else %}btn-outline-success{% endif %}" onclick="confirmDelete({{ category.id }}, '{{ category.is_listed }}')">
+                                    <i class="{% if category.is_listed %}fas fa-trash{% else %}fas fa-undo{% endif %}"></i>
+                                </button>
+                                <form id="deleteForm{{ category.id }}" action="{% url 'category:delete_category' category.id %}" method="post" style="display: none;">
+                                    {% csrf_token %}
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div> <!-- card-body end// -->
+    </div> <!-- card end// -->
+    <div class="pagination-area mt-15 mb-50">
+        <nav aria-label="Page navigation example">
+            <ul class="pagination justify-content-start">
+                <li class="page-item active"><a class="page-link" href="#">01</a></li>
+                <li class="page-item"><a class="page-link" href="#">02</a></li>
+                <li class="page-item"><a class="page-link" href="#">03</a></li>
+                <li class="page-item"><a class="page-link dot" href="#">...</a></li>
+                <li class="page-item"><a class="page-link" href="#">16</a></li>
+                <li class="page-item"><a class="page-link" href="#"><i class="material-icons md-chevron_right"></i></a></li>
+            </ul>
+        </nav>
+    </div>
+</section> <!-- content-main end// -->
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    function confirmDelete(categoryId, isListed) {
+        const action = isListed === 'True' ? 'delete' : 'restore';
+        Swal.fire({
+            title: `Are you sure you want to ${action} this category?`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes',
+            cancelButtonText: 'No',
+            customClass: {
+                title: 'swal-title',
+                htmlContainer: 'swal-text',
+                confirmButton: 'swal-confirm-button',
+                cancelButton: 'swal-cancel-button',
+            },
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById(`deleteForm${categoryId}`).submit();
+            }
+        });
+    }
+</script>
+<style>
+    
+    .swal2-title, .swal2-html-container {
+        color: #333 !important; 
+    }
+    .swal2-confirm, .swal2-cancel {
+        color: #fff !important; 
+    }
+    .swal2-confirm {
+        background-color: #3085d6 !important; 
+    }
+    .swal2-cancel {
+        background-color: #d33 !important; 
+    }
+
+    .table td.text-center .btn {
+        margin: 2px;
+        padding: 6px 12px;
+        font-size: 14px;
+    }
+
+    .table th.text-center, .table td.text-center {
+        text-align: center;
+    }
+</style>
+
+{% endblock %}

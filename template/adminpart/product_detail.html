@@ -1,0 +1,63 @@
+{% extends 'adminpart/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="content-main">
+    <div class="content-header">
+        <h2 class="content-title">Product Details: {{ product.product_name }}</h2>
+        <div>
+            <a href="{% url 'product:product_list' %}" class="btn btn-outline-primary"><i class="fas fa-list"></i> Product List</a>
+            <a href="{% url 'product:edit_product' product.id %}" class="btn btn-outline-secondary"><i class="fas fa-edit"></i> Edit Product</a>
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    {% if product.thumbnail %}
+                        <img src="{{ product.thumbnail.url }}" alt="{{ product.product_name }}" class="img-fluid rounded">
+                    {% else %}
+                        <div class="text-center p-4 bg-secondary text-white rounded">No Image Available</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-8">
+                    <h3>{{ product.product_name }}</h3>
+                    <p><strong>Category:</strong> {{ product.product_category }}</p>
+                    <p><strong>Price:</strong> ₹{{ product.price }}</p>
+                    <p><strong>Offer Price:</strong> ₹{{ product.offer_price }}</p>
+                    <p><strong>Status:</strong> 
+                        {% if product.is_active %}
+                            <span class="badge bg-success">Active</span>
+                        {% else %}
+                            <span class="badge bg-danger">Inactive</span>
+                        {% endif %}
+                    </p>
+                    <p><strong>Created At:</strong> {{ product.created_at }}</p>
+                    <p><strong>Last Updated:</strong> {{ product.updated_at }}</p>
+                    <h4 class="mt-4">Description</h4>
+                    <p>{{ product.product_decription }}</p>
+                    <h4 class="mt-4">Additional Images</h4>
+                    <a href="{% url 'product:upload_images' product.id %}" class="btn btn-outline-primary mb-3"><i class="fas fa-upload"></i> Add Images</a>
+                    <div class="row">
+                        {% for image in product_images %}
+                            <div class="col-md-3 mb-3">
+                                <div class="card">
+                                    <img src="{{ image.images.url }}" class="card-img-top" alt="Product Image">
+                                    <div class="card-body">
+                                        <form method="post" action="{% url 'product:delete_image' image.id %}" style="display:inline;">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-outline-danger"><i class="fas fa-trash"></i> Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        {% empty %}
+                            <p>No additional images available.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

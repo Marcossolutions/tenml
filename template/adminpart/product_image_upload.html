@@ -1,0 +1,204 @@
+{% extends 'adminpart/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1>Add Images for Variant {{ product_variant.product.product_name }} - {{ product_variant.size }} - {{ product_variant.colour_name }}</h1>
+    
+    <!-- Add Variant Images Form -->
+    <form method="post" enctype="multipart/form-data" id="variant-image-form">
+        {% csrf_token %}
+        <div class="form-group">
+            <label for="images">Select Images</label>
+            <input type="file" class="form-control" id="images" name="images" accept="image/*" multiple required>
+            <small class="form-text text-muted">Please upload valid image files.</small>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Upload Images</button>
+        <a href="{% url 'product:product_detail' product.id %}" class="btn btn-secondary">Cancel</a>
+    </form>
+
+    <!-- Image Preview Section -->
+    <div class="container mt-4">
+        <h4>Image Preview</h4>
+        <div id="imagePreview" style="width: 100%; overflow: auto; border: 1px solid #ddd; padding: 10px;"></div>
+    </div>
+
+    <!-- Modal for Cropping Image -->
+    <div class="modal fade" id="cropperModal" tabindex="-1" aria-labelledby="cropperModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="cropperModalLabel">Crop Image</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="width: 100%; height: 400px; overflow: hidden; display: flex; justify-content: center; align-items: center;">
+                    <img id="imageToCrop" style="max-width: 100%; max-height: 100%;" />
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" id="cropAndSave" class="btn btn-primary">Crop and Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .error { font-size: 0.8em; color: red; }
+    .small-text { font-size: 0.8em; line-height: 1.2; }
+</style>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.css" rel="stylesheet"/>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.12/cropper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const form = document.getElementById("variant-image-form");
+        const imageInput = document.getElementById("images");
+        const imagePreview = document.getElementById("imagePreview");
+        const imageToCrop = document.getElementById("imageToCrop");
+        const cropAndSave = document.getElementById("cropAndSave");
+        const cropperModalElement = document.getElementById("cropperModal");
+
+        let cropper;
+        let currentImage;
+        let originalImageBlobs = [];
+
+        const validateImage = (file) => {
+            const allowedExtensions = /\.(jpg|jpeg|png|gif)$/i;
+            if (!allowedExtensions.test(file.name)) {
+                alert("Please upload a valid image file (jpg, jpeg, png, gif)");
+                return false;
+            }
+            return true;
+        };
+
+        imageInput.addEventListener("change", (event) => {
+            const files = event.target.files;
+            imagePreview.innerHTML = ''; // Clear previous previews
+            originalImageBlobs = []; // Clear previous blobs
+
+            Array.from(files).forEach((file) => {
+                if (!validateImage(file)) {
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const imageContainer = document.createElement("div");
+                    imageContainer.style.position = "relative";
+                    imageContainer.style.marginBottom = "10px";
+                    imageContainer.style.display = "flex";
+                    imageContainer.style.alignItems = "center";
+                    imageContainer.style.justifyContent = "space-between";
+
+                    const img = document.createElement("img");
+                    img.src = event.target.result;
+                    img.className = "imagePreview";
+                    img.style.maxWidth = "280px";
+                    img.style.maxHeight = "280px";
+                    img.style.marginRight = "10px";
+                    img.style.objectFit = "cover";
+
+                    const buttonContainer = document.createElement("div");
+                    buttonContainer.style.display = "flex";
+                    buttonContainer.style.flexDirection = "column";
+
+                    const deleteButton = document.createElement("button");
+                    deleteButton.className = "btn btn-danger btn-sm mb-2";
+                    deleteButton.innerText = "Remove";
+                    deleteButton.addEventListener("click", () => {
+                        imageContainer.remove();
+                        originalImageBlobs = originalImageBlobs.filter(
+                            (item) => item.id !== img.src
+                        );
+                        updateFileInput();
+                    });
+
+                    buttonContainer.appendChild(deleteButton);
+                    imageContainer.appendChild(img);
+                    imageContainer.appendChild(buttonContainer);
+                    imagePreview.appendChild(imageContainer);
+
+                    img.addEventListener("click", () => {
+                        imageToCrop.src = img.src;
+                        currentImage = img;
+                        const modal = new bootstrap.Modal(cropperModalElement);
+                        modal.show();
+                    });
+
+                    const originalFile = new File([file], file.name, { type: file.type });
+                    originalImageBlobs.push({
+                        id: event.target.result,
+                        blob: originalFile,
+                    });
+                    updateFileInput();
+                };
+
+                reader.readAsDataURL(file);
+            });
+        });
+
+        cropperModalElement.addEventListener("shown.bs.modal", () => {
+            cropper = new Cropper(imageToCrop, {
+                aspectRatio: 1,
+                viewMode: 2,
+                autoCropArea: 1,
+            });
+        });
+
+        cropperModalElement.addEventListener("hidden.bs.modal", () => {
+            if (cropper) {
+                cropper.destroy();
+                cropper = null;
+            }
+        });
+
+        cropAndSave.addEventListener("click", () => {
+            if (cropper) {
+                const canvas = cropper.getCroppedCanvas();
+                canvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    currentImage.src = url;
+
+                    const croppedFile = new File(
+                        [blob],
+                        `croppedImage_${Date.now()}.jpg`,
+                        { type: "image/jpeg" }
+                    );
+
+                    originalImageBlobs = originalImageBlobs.map((item) => {
+                        if (item.id === imageToCrop.src) {
+                            return { id: url, blob: croppedFile };
+                        }
+                        return item;
+                    });
+
+                    updateFileInput();
+                    
+                    // Close the modal
+                    const modal = bootstrap.Modal.getInstance(cropperModalElement);
+                    modal.hide();
+                }, 'image/jpeg');
+            }
+        });
+
+        function updateFileInput() {
+            const dataTransfer = new DataTransfer();
+            originalImageBlobs.forEach((item) => {
+                dataTransfer.items.add(item.blob);
+            });
+            imageInput.files = dataTransfer.files;
+        }
+
+        form.addEventListener("submit", (event) => {
+            if (imageInput.files.length === 0) {
+                alert("Image is required");
+                event.preventDefault();
+            }
+        });
+    });
+</script>
+{% endblock %}

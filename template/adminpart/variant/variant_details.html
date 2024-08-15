@@ -1,0 +1,161 @@
+{% extends 'adminpart/base.html' %}
+{% load static %}
+
+{% block content %}
+
+<section class="content-main">
+    <div class="content-header">
+        <h2 class="content-title">{{ product.product_name }} - Variants</h2>
+        <div>
+            <a href="{% url 'product:product_list' %}" class="btn btn-primary"><i class="material-icons md-arrow-back"></i> Back to Products</a>
+            <a href="{% url 'product:create_variant' product.id %}" class="btn btn-primary"><i class="material-icons md-plus"></i> Add Variant</a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <header class="card-header">
+            <h4>Manage Variants</h4>
+        </header>
+        <div class="card-body">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Size</th>
+                        <th>Price</th>
+                        <th>Stock</th>
+                        <th>Status</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for variant in variants %}
+                    <tr>
+                        <td>{{ variant.id }}</td>
+                        <td>{{ variant.size }}</td>
+                        <td>₹{{ variant.variant_price }}</td>
+                        <td>{{ variant.variant_stock }}</td>
+                        <td>
+                            {% if variant.variant_status %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'product:edit_variant' variant.id %}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form id="toggleForm{{ variant.id }}" action="{% url 'product:toggle_variant_status' variant.id %}" method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm {% if variant.variant_status %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+                                    <i class="{% if variant.variant_status %}fas fa-trash{% else %}fas fa-undo{% endif %}"></i>
+                                </button>
+                            </form>
+                            {% if not variant.variant_status %}
+                           
+                            {% endif %}
+                        </td>
+                        
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    document.querySelectorAll('[id^="toggleForm"]').forEach(form => {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); // Prevent the form from submitting immediately
+
+            const action = this.querySelector('button').classList.contains('btn-outline-danger') ? 'deactivate' : 'activate';
+            
+            Swal.fire({
+                title: `Are you sure you want to ${action} this variant?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Yes',
+                cancelButtonText: 'No',
+                customClass: {
+                    title: 'swal-title',
+                    htmlContainer: 'swal-text',
+                    confirmButton: 'swal-confirm-button',
+                    cancelButton: 'swal-cancel-button',
+                },
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.submit(); // Submit the form if the user confirms
+                }
+            });
+        });
+    });
+</script>
+
+
+<style>
+    body {
+        background-color: #121212;
+        color: #e0e0e0;
+    }
+    .card {
+        background-color: #1e1e1e;
+    }
+    .table {
+        color: #e0e0e0;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #2c2c2c;
+    }
+    .form-control, .form-select {
+        background-color: #2c2c2c;
+        color: #e0e0e0;
+        border-color: #444;
+    }
+    .btn-outline-primary {
+        color: #bb86fc;
+        border-color: #bb86fc;
+    }
+    .btn-outline-primary:hover {
+        background-color: #bb86fc;
+        color: #121212;
+    }
+    .btn-outline-danger {
+        color: #cf6679;
+        border-color: #cf6679;
+    }
+    .btn-outline-danger:hover {
+        background-color: #cf6679;
+        color: #121212;
+    }
+    .btn-outline-success {
+        color: #03dac6;
+        border-color: #03dac6;
+    }
+    .btn-outline-success:hover {
+        background-color: #03dac6;
+        color: #121212;
+    }
+    .swal2-popup {
+        background-color: #1e1e1e;
+        color: #e0e0e0;
+    }
+    .swal2-title, .swal2-html-container {
+        color: #e0e0e0 !important;
+    }
+    .swal2-confirm, .swal2-cancel {
+        color: #121212 !important;
+    }
+    .swal2-confirm {
+        background-color: #bb86fc !important;
+    }
+    .swal2-cancel {
+        background-color: #cf6679 !important;
+    }
+</style>
+
+
+
+{% endblock %}

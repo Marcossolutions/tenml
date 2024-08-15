@@ -1,0 +1,193 @@
+﻿{% extends 'userpart/base_user.html' %}
+{% load static %}
+
+{% block content %}
+<main class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold mb-6 text-[#e4e1d8]">Your Cart</h1>
+
+    {% if cart_items %}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div class="lg:col-span-2">
+            {% for item in cart_items %}
+            <div class="bg-[#2a2a2a] rounded-lg mb-4 p-4 flex items-center" data-cart-item-id="{{ item.id }}">
+                <img src="{{ item.product.thumbnail.url }}" alt="{{ item.product.product_name }}" class="w-24 h-24 object-cover rounded-md mr-4">
+                <div class="flex-grow">
+                    <h2 class="text-xl font-semibold text-[#e4e1d8]">{{ item.product.product_name }}</h2>
+                    <p class="text-[#e4e1d8] mt-1">size:{{ item.variant.size }}</p>
+                    <p class="text-[#e4e1d8] mt-1">₹{{ item.variant.variant_price }}</p>
+                    <p class="text-[#e4e1d8] mt-1">Stock: <span class="stock-quantity" data-stock="{{ item.variant.variant_stock }}">{{ item.variant.variant_stock }}</span></p>
+                    <div class="flex items-center mt-2">
+                        <button class="bg-[#3a3a3a] text-[#e4e1d8] px-2 py-1 rounded-l qty-btn" data-action="decrease" data-id="{{ item.id }}">-</button>
+                        <input type="text" class="bg-[#3a3a3a] text-[#e4e1d8] w-12 text-center qty-input" value="{{ item.quantity }}" readonly data-id="{{ item.id }}">
+                        <button class="bg-[#3a3a3a] text-[#e4e1d8] px-2 py-1 rounded-r qty-btn" data-action="increase" data-id="{{ item.id }}">+</button>
+                    </div>
+                </div>
+                <div class="text-right">
+                    <p class="text-xl font-bold text-[#e4e1d8] item-total-price">₹{{ item.get_total_price }}</p>
+                    <form action="{% url 'cart:remove_from_cart' item.id %}" method="post" class="remove-item-form" style="display: inline;" onsubmit="return confirmRemove(event);">
+                        {% csrf_token %}
+                        <button type="submit" class="mt-2 text-red-500">Remove</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+            <div class="text-right mt-4">
+                <a href="{% url 'cart:clear_cart' %}" class="bg-[#3a3a3a] text-[#e4e1d8] px-4 py-2 rounded-md hover:bg-[#4a4a4a]">
+                    Clear Cart
+                </a>
+            </div>
+        </div>
+        <div class="lg:col-span-1">
+            <div class="bg-[#2a2a2a] rounded-lg p-6">
+                <h2 class="text-2xl font-bold mb-4 text-[#e4e1d8]">Order Summary</h2>
+                <div class="flex justify-between mb-4">
+                    <span class="text-[#e4e1d8]">Total</span>
+                    <span class="text-xl font-bold text-[#e4e1d8]" id="cart-total">₹{{ cart_total }}</span>
+                </div>
+                <a href="{% url 'cart:checkout' %}" class="block w-full bg-blue-600 text-white text-center py-2 rounded-md hover:bg-blue-700 transition-colors mb-2">
+                    Proceed to Checkout
+                </a>
+                <a href="{% url 'product:shop_page' %}" class="block w-full bg-[#3a3a3a] text-[#e4e1d8] text-center py-2 rounded-md hover:bg-[#4a4a4a] transition-colors">
+                    Continue Shopping
+                </a>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center">
+        <img src="{% static 'images/empty-cart.jpg' %}" alt="Empty Cart" class="mx-auto mb-4 max-w-xs">
+        <h2 class="text-2xl font-bold mb-4 text-[#e4e1d8]">Your cart is empty</h2>
+        <a href="{% url 'product:shop_page' %}" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
+            Start Shopping
+        </a>
+    </div>
+    {% endif %}
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    const MAX_QUANTITY = 5;
+
+    function updateCartItem(cartItemId, quantity) {
+        $.ajax({
+            url: "{% url 'cart:update_cart_item' 0 %}".replace('0', cartItemId),
+            method: 'POST',
+            data: {
+                'quantity': quantity,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.success) {
+                    const itemTotalPriceElem = $(`[data-cart-item-id="${cartItemId}"] .item-total-price`);
+                    itemTotalPriceElem.text(`₹${response.item_total_price}`);
+                    $('#cart-total').text(`₹${response.cart_total}`);
+                } else if (response.error) {
+                    Swal.fire({
+                        title: 'Error',
+                        text: response.error,
+                        icon: 'error',
+                        confirmButtonText: 'Okay'
+                    });
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error updating quantity:', error);
+            }
+        });
+    }
+    // this is for purchase quantity limit
+    $(document).on('click', '.qty-btn', function(event) {
+        event.preventDefault();
+        const isIncrease = $(this).data('action') === 'increase';
+        const qtyInput = $(this).siblings('.qty-input');
+        let quantity = parseInt(qtyInput.val());
+        
+        if (isIncrease) {
+            if (quantity < MAX_QUANTITY) {
+                quantity += 1;
+            } else {
+                Swal.fire({
+                    title: 'Maximum Quantity Reached',
+                    text: `You can only add up to ${MAX_QUANTITY} items of this product to your cart.`,
+                    icon: 'warning',
+                    confirmButtonText: 'Okay'
+                });
+                return;
+            }
+        } else {
+            quantity = Math.max(1, quantity - 1);
+        }
+        
+        qtyInput.val(quantity);
+        const cartItemId = $(this).closest('[data-cart-item-id]').data('cart-item-id');
+        updateCartItem(cartItemId, quantity);
+    });
+    //this is more stock limiting
+    document.addEventListener('DOMContentLoaded', function() {
+        const qtyBtns = document.querySelectorAll('.qty-btn');
+        qtyBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const action = this.dataset.action;
+                const itemId = this.dataset.id;
+                const qtyInput = document.querySelector(`.qty-input[data-id="${itemId}"]`);
+                const stockSpan = this.closest('.flex').previousElementSibling.querySelector('.stock-quantity');
+                const stockQuantity = parseInt(stockSpan.dataset.stock);
+                let currentQty = parseInt(qtyInput.value);
+    
+                if (action === 'increase') {
+                    if (currentQty < stockQuantity) {
+                        currentQty++;
+                    } else {
+                        Swal.fire({
+                            title: 'Maximum stock reached',
+                            text: 'You cannot add more items than available in stock.',
+                            icon: 'warning',
+                            confirmButtonText: 'OK'
+                        });
+                        return;
+                    }
+                } else if (action === 'decrease' && currentQty > 1) {
+                    currentQty--;
+                }
+    
+                qtyInput.value = currentQty;
+                updateCartItem(itemId, currentQty);
+            });
+        });
+    
+        function updateCartItem(itemId, quantity) {
+            // Send AJAX request to update cart item quantity
+            // Update the cart total and item subtotal on success
+            // You'll need to implement this function based on your backend API
+        }
+    });
+
+
+    
+});
+</script>
+<script>
+    function confirmRemove(event) {
+        event.preventDefault(); // Prevent the form from submitting immediately
+    
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "Do you really want to remove this item from your cart?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, remove it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // If the user confirms, submit the form
+                event.target.submit();
+            }
+        });
+    
+        return false; // Prevent default form submission
+    }
+    </script>
+{% endblock %}
