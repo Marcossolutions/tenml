@@ -145,7 +145,11 @@
                     <input type="hidden" name="variant_id" id="variant-id" value="">
                     <input type="hidden" name="quantity" id="quantity" value="1">
                     <button type="button" id="add-to-cart-btn" class="add-to-cart-btn bg-blue-500 text-white px-4 py-2 rounded transition-all duration-300">
-                        Add to Cart
+                        {% if in_cart %}
+                            Go to Cart
+                        {% else %}
+                            Add to Cart
+                        {% endif %}
                     </button>
                 </form>
                 
@@ -295,6 +299,10 @@ function addToCart() {
                     timer: 2000,
                     toast: true
                 });
+                const addToCartBtn = document.getElementById('add-to-cart-btn');
+                addToCartBtn.textContent = 'Go to Cart';
+                addToCartBtn.removeEventListener('click', addToCart);
+                addToCartBtn.addEventListener('click', goToCart);                
             } else {
                 Swal.fire({
                     position: 'top-end',
@@ -310,6 +318,9 @@ function addToCart() {
     xhr.send(formData);
 }
 
+function goToCart() {
+    window.location.href = "{% url 'cart:cart_view' %}";
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     const firstVariantButton = document.querySelector('.variant-btn');
@@ -318,19 +329,23 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     const addToCartBtn = document.getElementById('add-to-cart-btn');
-    addToCartBtn.addEventListener('click', function(e) {
-        if (this.disabled) {
-            e.preventDefault();
-            Swal.fire({
-                title: 'Out of Stock',
-                text: 'This variant is currently out of stock.',
-                icon: 'warning',
-                confirmButtonText: 'OK'
-            });
-        } else {
-            addToCart();
-        }
-    });
+    if (addToCartBtn.textContent.trim() === 'Add to Cart') {
+        addToCartBtn.addEventListener('click', function(e) {
+            if (this.disabled) {
+                e.preventDefault();
+                Swal.fire({
+                    title: 'Out of Stock',
+                    text: 'This variant is currently out of stock.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+            } else {
+                addToCart();
+            }
+        });
+    } else {
+        addToCartBtn.addEventListener('click', goToCart);
+    }
 });
  
     

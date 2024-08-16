@@ -48,7 +48,7 @@ def add_to_cart(request):
         cart_item.quantity += quantity
         cart_item.save()
 
-    return JsonResponse({'status': 'success', 'message': 'Item added to cart.'})
+    return JsonResponse({'status': 'success', 'message': 'Item added to cart.','in_cart': True})
 
 @login_required(login_url='/login/')
 def update_cart_item(request, item_id):

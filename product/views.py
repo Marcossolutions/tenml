@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
+from cart.models import CartItem,Cart
 
 def product_list(request):
     products = Product.objects.all().order_by('-created_at')
@@ -178,16 +179,23 @@ def restore_variant(request,variant_id):
 def product_detail_page(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_active=True)
     product_images = product.images.all()
-
     product_variants = ProductVariant.objects.filter(product=product)
-
     selected_variant = product_variants.first() if product_variants.exists() else None
 
+    in_cart = False
+    if request.user.is_authenticated:
+        try:
+            cart = Cart.objects.get(user=request.user)
+            in_cart = CartItem.objects.filter(cart=cart, product=product).exists()
+        except Cart.DoesNotExist:
+            pass
+        
     context = {
         'product': product,
         'product_images': product_images,
         'product_variants': product_variants,
         'selected_variant': selected_variant,
+        'in_cart' : in_cart
     }
 
     return render(request, 'userpart/user_panel/shop_product-detail.html', context)
