@@ -10,6 +10,7 @@
         <div class="lg:col-span-2">
             {% for item in cart_items %}
             <div class="bg-[#2a2a2a] rounded-lg mb-4 p-4 flex items-center" data-cart-item-id="{{ item.id }}">
+                <input type="checkbox" class="cart-item-checkbox mr-4" name="selected_items[]" value="{{ item.id }}" data-price="{{ item.variant.variant_price }}" checked>
                 <img src="{{ item.product.thumbnail.url }}" alt="{{ item.product.product_name }}" class="w-24 h-24 object-cover rounded-md mr-4">
                 <div class="flex-grow">
                     <h2 class="text-xl font-semibold text-[#e4e1d8]">{{ item.product.product_name }}</h2>
@@ -17,10 +18,30 @@
                     <p class="text-[#e4e1d8] mt-1">₹{{ item.variant.variant_price }}</p>
                     <p class="text-[#e4e1d8] mt-1">Stock: <span class="stock-quantity" data-stock="{{ item.variant.variant_stock }}">{{ item.variant.variant_stock }}</span></p>
                     <div class="flex items-center mt-2">
-                        <button class="bg-[#3a3a3a] text-[#e4e1d8] px-2 py-1 rounded-l qty-btn" data-action="decrease" data-id="{{ item.id }}">-</button>
-                        <input type="text" class="bg-[#3a3a3a] text-[#e4e1d8] w-12 text-center qty-input" value="{{ item.quantity }}" readonly data-id="{{ item.id }}">
-                        <button class="bg-[#3a3a3a] text-[#e4e1d8] px-2 py-1 rounded-r qty-btn" data-action="increase" data-id="{{ item.id }}">+</button>
+                        <button 
+                            class="bg-[#3a3a3a] text-[#e4e1d8] px-2 py-1 rounded-l qty-btn" 
+                            data-action="decrease" 
+                            data-id="{{ item.id }}"
+                        >
+                            -
+                        </button>
+                        <input 
+                            type="text" 
+                            class="bg-[#3a3a3a] text-[#e4e1d8] w-12 text-center qty-input" 
+                            value="{{ item.quantity }}" 
+                            readonly 
+                            data-id="{{ item.id }}"
+                        >
+                        <button 
+                            class="bg-[#3a3a3a] text-[#e4e1d8] px-2 py-1 rounded-r qty-btn" 
+                            data-action="increase" 
+                            data-id="{{ item.id }}"
+                        >
+                            +
+                        </button>
                     </div>
+                    <!-- Assuming you have a stock quantity span nearby -->
+                    <span class="stock-quantity hidden" data-stock="{{ item.variant.variant_stock }}"></span>
                 </div>
                 <div class="text-right">
                     <p class="text-xl font-bold text-[#e4e1d8] item-total-price">₹{{ item.get_total_price }}</p>
@@ -44,9 +65,9 @@
                     <span class="text-[#e4e1d8]">Total</span>
                     <span class="text-xl font-bold text-[#e4e1d8]" id="cart-total">₹{{ cart_total }}</span>
                 </div>
-                <a href="{% url 'cart:checkout' %}" class="block w-full bg-blue-600 text-white text-center py-2 rounded-md hover:bg-blue-700 transition-colors mb-2">
+                <button id="checkout-btn" class="block w-full bg-blue-600 text-white text-center py-2 rounded-md hover:bg-blue-700 transition-colors mb-2">
                     Proceed to Checkout
-                </a>
+                </button>
                 <a href="{% url 'product:shop_page' %}" class="block w-full bg-[#3a3a3a] text-[#e4e1d8] text-center py-2 rounded-md hover:bg-[#4a4a4a] transition-colors">
                     Continue Shopping
                 </a>
@@ -68,7 +89,16 @@
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
 $(document).ready(function() {
-    const MAX_QUANTITY = 5;
+    function updateCartTotal() {
+        let total = 0;
+        $('.cart-item-checkbox:checked').each(function() {
+            const itemId = $(this).val();
+            const price = parseFloat($(this).data('price'));
+            const quantity = parseInt($(`input.qty-input[data-id="${itemId}"]`).val());
+            total += price * quantity;
+        });
+        $('#cart-total').text(`₹${total.toFixed(2)}`);
+    }
 
     function updateCartItem(cartItemId, quantity) {
         $.ajax({
@@ -82,7 +112,7 @@ $(document).ready(function() {
                 if (response.success) {
                     const itemTotalPriceElem = $(`[data-cart-item-id="${cartItemId}"] .item-total-price`);
                     itemTotalPriceElem.text(`₹${response.item_total_price}`);
-                    $('#cart-total').text(`₹${response.cart_total}`);
+                    updateCartTotal();
                 } else if (response.error) {
                     Swal.fire({
                         title: 'Error',
@@ -97,20 +127,25 @@ $(document).ready(function() {
             }
         });
     }
-    // this is for purchase quantity limit
+
     $(document).on('click', '.qty-btn', function(event) {
         event.preventDefault();
         const isIncrease = $(this).data('action') === 'increase';
         const qtyInput = $(this).siblings('.qty-input');
+        const itemId = $(this).data('id');
+        const stockSpan = $(this).closest('.flex').siblings('.stock-quantity');
+        const stockQuantity = parseInt(stockSpan.data('stock'));
         let quantity = parseInt(qtyInput.val());
-        
+
+        const maxLimit = Math.min(5, stockQuantity);
+
         if (isIncrease) {
-            if (quantity < MAX_QUANTITY) {
+            if (quantity < maxLimit) {
                 quantity += 1;
             } else {
                 Swal.fire({
-                    title: 'Maximum Quantity Reached',
-                    text: `You can only add up to ${MAX_QUANTITY} items of this product to your cart.`,
+                    title: 'Limit reached',
+                    text: `You cannot add more than ${maxLimit} items.`,
                     icon: 'warning',
                     confirmButtonText: 'Okay'
                 });
@@ -119,75 +154,35 @@ $(document).ready(function() {
         } else {
             quantity = Math.max(1, quantity - 1);
         }
-        
+
         qtyInput.val(quantity);
-        const cartItemId = $(this).closest('[data-cart-item-id]').data('cart-item-id');
-        updateCartItem(cartItemId, quantity);
+        updateCartItem(itemId, quantity);
     });
-    //this is more stock limiting
-    document.addEventListener('DOMContentLoaded', function() {
-        const qtyBtns = document.querySelectorAll('.qty-btn');
-        qtyBtns.forEach(btn => {
-            btn.addEventListener('click', function() {
-                const action = this.dataset.action;
-                const itemId = this.dataset.id;
-                const qtyInput = document.querySelector(`.qty-input[data-id="${itemId}"]`);
-                const stockSpan = this.closest('.flex').previousElementSibling.querySelector('.stock-quantity');
-                const stockQuantity = parseInt(stockSpan.dataset.stock);
-                let currentQty = parseInt(qtyInput.value);
+
+    $('.cart-item-checkbox').on('change', updateCartTotal);
+
+    $('#checkout-btn').on('click', function(e) {
+        e.preventDefault();
+        const selectedItems = $('.cart-item-checkbox:checked').map(function() {
+            return $(this).val();
+        }).get();
     
-                if (action === 'increase') {
-                    if (currentQty < stockQuantity) {
-                        currentQty++;
-                    } else {
-                        Swal.fire({
-                            title: 'Maximum stock reached',
-                            text: 'You cannot add more items than available in stock.',
-                            icon: 'warning',
-                            confirmButtonText: 'OK'
-                        });
-                        return;
-                    }
-                } else if (action === 'decrease' && currentQty > 1) {
-                    currentQty--;
-                }
-    
-                qtyInput.value = currentQty;
-                updateCartItem(itemId, currentQty);
+        if (selectedItems.length === 0) {
+            Swal.fire({
+                title: 'No items selected',
+                text: 'Please select at least one item to checkout.',
+                icon: 'warning',
+                confirmButtonText: 'Okay'
             });
-        });
-    
-        function updateCartItem(itemId, quantity) {
-            // Send AJAX request to update cart item quantity
-            // Update the cart total and item subtotal on success
-            // You'll need to implement this function based on your backend API
+            return;
         }
+    
+        // Redirect to checkout page with selected items
+        window.location.href = "{% url 'cart:checkout' %}?cart_items=" + selectedItems.join(',');
     });
 
-
-    
+    // Initial update of cart total
+    updateCartTotal();
 });
 </script>
-<script>
-    function confirmRemove(event) {
-        event.preventDefault(); // Prevent the form from submitting immediately
-    
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "Do you really want to remove this item from your cart?",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Yes, remove it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // If the user confirms, submit the form
-                event.target.submit();
-            }
-        });
-    
-        return false; // Prevent default form submission
-    }
-    </script>
 {% endblock %}

@@ -9,58 +9,77 @@ from .models import Cart, CartItem, Product, ProductVariant
 import logging
 from django.contrib import messages
 from userpanel.models import UserAddress
+from decimal import Decimal
 
 @login_required(login_url='/login/')
 def cart_view(request):
     cart, created = Cart.objects.get_or_create(user=request.user)
-    cart_items = CartItem.objects.filter(is_active=True,cart=cart)
-    cart_total = cart.get_total()
-    return render(request, 'userpart/cart/cart_view.html', {'cart_items': cart_items, 'cart_total': cart_total})
-
+    cart_items = CartItem.objects.filter(cart=cart).select_related('product', 'variant')
+    cart_total = sum(item.get_total_price() for item in cart_items if item.variant.variant_stock > 0)
+    
+    context = {
+        'cart_items': cart_items,
+        'cart_total': cart_total,
+    }
+    return render(request, 'userpart/cart/cart_view.html', context)
 
 
 
 @login_required(login_url='/login/')
 def add_to_cart(request):
-    if not request.user.is_authenticated:
-        return JsonResponse({'status': 'error', 'message': 'Please log in to add items to cart.'}, status=400)
+    if request.method == 'POST':
+        product_id = request.POST.get('product_id')
+        variant_id = request.POST.get('variant_id')
+        quantity = int(request.POST.get('quantity', 1))
 
-    product_id = request.POST.get('product_id')
-    variant_id = request.POST.get('variant_id')
-    quantity = int(request.POST.get('quantity', 1))
+        try:
+            product = Product.objects.get(id=product_id)
+            variant = ProductVariant.objects.get(id=variant_id, product=product)
+        except (Product.DoesNotExist, ProductVariant.DoesNotExist):
+            return JsonResponse({'status': 'error', 'message': 'Invalid product or variant.'}, status=400)
 
-    try:
-        product = Product.objects.get(id=product_id)
-        variant = ProductVariant.objects.get(id=variant_id, product=product)
-    except (Product.DoesNotExist, ProductVariant.DoesNotExist):
-        return JsonResponse({'status': 'error', 'message': 'Invalid product or variant.'}, status=400)
+        if quantity > variant.variant_stock:
+            return JsonResponse({'status': 'error', 'message': 'Not enough stock available.'}, status=400)
 
-    cart, created = Cart.objects.get_or_create(user=request.user)
-    
-    cart_item, created = CartItem.objects.get_or_create(
-        cart=cart,
-        product=product,
-        variant=variant,
-        defaults={'quantity': quantity}
-    )
+        cart, created = Cart.objects.get_or_create(user=request.user)
+        cart_item, created = CartItem.objects.get_or_create(
+            cart=cart,
+            product=product,
+            variant=variant,
+            defaults={'quantity': quantity}
+        )
 
-    if not created:
-        cart_item.quantity += quantity
-        cart_item.save()
+        if not created:
+            cart_item.quantity += quantity
+            if cart_item.quantity > variant.variant_stock:
+                cart_item.quantity = variant.variant_stock
+            cart_item.save()
 
-    return JsonResponse({'status': 'success', 'message': 'Item added to cart.','in_cart': True})
+        return JsonResponse({'status': 'success', 'message': 'Item added to cart.', 'cart_total': cart.get_total()})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)
 
 @login_required(login_url='/login/')
 def update_cart_item(request, item_id):
-    cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
-    quantity = int(request.POST.get('quantity', 1))
-    if quantity > 0 and quantity <= 5:
+    if request.method == 'POST':
+        quantity = int(request.POST.get('quantity', 1))
+        cart_item = get_object_or_404(CartItem, id=item_id, cart__user=request.user)
+        
+        # Limit the quantity to the stock or 5, whichever is lower
+        max_quantity = min(cart_item.variant.variant_stock, 5)
+        if quantity > max_quantity:
+            return JsonResponse({'success': False, 'error': f'Maximum quantity allowed is {max_quantity}.'})
+        
         cart_item.quantity = quantity
         cart_item.save()
-        item_total_price = cart_item.get_total_price()
-        cart_total = cart_item.cart.get_total()
-        return JsonResponse({'success': True, 'item_total_price': item_total_price, 'cart_total': cart_total})
-    return JsonResponse({'success': False, 'error': 'Invalid quantity'})
+        
+        return JsonResponse({
+            'success': True,
+            'item_total_price': cart_item.get_total_price(),
+            'cart_total': cart_item.cart.get_total()
+        })
+    
+    return JsonResponse({'success': False, 'error': 'Invalid request method.'})
 
 logger = logging.getLogger(__name__)
 
@@ -88,36 +107,100 @@ def checkout(request):
     # Implement your checkout logic here
     return render(request, 'cart/checkout.html')
 
+
+@login_required
 def checkout(request):
-    try :
-        cart = Cart.objects.get(user=request.user, is_active=True)
-        cart_items = CartItem.objects.filter(cart=cart)
-        cart_total =sum(item.get_total_price() for item in cart_items)
-        
-        context = {
-            'cart_items':cart_items,
-            'cart_total':cart_total,
-        }
-        return render(request, 'cart/checkout.html', context)
-    except Cart.DoesNotExist:
-        return redirect('cart:view_cart')
-
-
-def checkout(request):
-
-    cart = get_object_or_404(Cart, user=request.user)
-
-    addresses = UserAddress.objects.filter(user=request.user, is_deleted=False)
-
+    user = request.user
+    cart_item_ids = request.GET.get('cart_items', '')
+    user_addresses = UserAddress.objects.filter(user=user)
+    
+    if not cart_item_ids:
+        messages.error(request, "No items selected. Please select items before proceeding to checkout.")
+        return redirect('cart:cart_view')
+    
+    cart_item_ids = cart_item_ids.split(',')
+    cart_items = CartItem.objects.filter(id__in=cart_item_ids, cart__user=user)
+    
+    if not cart_items.exists():
+        messages.error(request, "No valid items found in cart. Please try again.")
+        return redirect('cart:cart_view')
+    
+    # Check stock and availability
+    for item in cart_items:
+        if item.quantity > item.variant.variant_stock:
+            messages.error(request, f"Insufficient stock for {item.product.product_name}.")
+            return redirect('cart:cart_view')
+        if not item.product.is_active or not item.variant.variant_status:
+            messages.error(request, f"{item.product.product_name} is no longer available.")
+            return redirect('cart:cart_view')
+    
+    # If all checks pass, proceed to checkout
+    cart_total = sum(item.get_total_price() for item in cart_items)
+    
     context = {
-        'cart': cart,
-        'cart_items': cart.cartitems.all(), 
-        'addresses': addresses,
-        'cart_total': cart.get_total(), 
+        'cart_items': cart_items,
+        'cart_total': cart_total,
+        'user_addresses': user_addresses,
+        'cart_item_ids': ','.join(map(str, cart_items.values_list('id', flat=True))),
     }
+    
     return render(request, 'userpart/cart/checkout.html', context)
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# def checkout(request):
+#     cart = get_object_or_404(Cart, user=request.user)
+#     addresses = UserAddress.objects.filter(user=request.user, is_deleted=False)
+
+#     if request.method == 'POST':
+#         selected_item_ids = request.POST.getlist('selected_items[]')
+        
+#         selected_cart_items = CartItem.objects.filter(cart=cart, id__in=selected_item_ids)
+        
+#         selected_total = sum(item.get_total_price() for item in selected_cart_items)
+        
+  
+#         cart.save()  # This will trigger the recalculation of cart total
+        
+#         return JsonResponse({
+#             'success': True, 
+#             'message': 'Checkout successful',
+#             'new_cart_total': cart.get_total()
+#         })
+
+#     cart_items = cart.cartitems.all()
+#     cart_total = cart.get_total()
+
+#     context = {
+#         'cart': cart,
+#         'cart_items': cart_items,
+#         'addresses': addresses,
+#         'cart_total': cart_total,
+#     }
+#     return render(request, 'userpart/cart/checkout.html', context)
 
 
 

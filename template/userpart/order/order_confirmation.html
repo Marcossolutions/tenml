@@ -1,0 +1,78 @@
+﻿{% extends 'userpart/base_user.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-12 max-w-4xl">
+    <div class="bg-gradient-to-r from-[#2a2a2a] to-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden">
+        <div class="bg-[#1a1a1a] py-6 px-8 border-b border-gray-700">
+            <h1 class="text-3xl font-bold text-[#e4e1d8]">Order Confirmation</h1>
+        </div>
+        
+        <div class="p-8">
+            <div class="mb-8">
+                <h2 class="text-2xl font-semibold text-[#e4e1d8] mb-4">Thank you for your order!</h2>
+                <p class="text-[#b8b5ad] mb-6">Your order has been placed successfully. Here are the details:</p>
+                
+                <div class="grid grid-cols-2 gap-4 text-[#e4e1d8]">
+                    <p><span class="font-semibold">Order ID:</span> {{ order.order_id }}</p>
+                    <p><span class="font-semibold">Order Date:</span> {{ order.date }}</p>
+                    <p><span class="font-semibold">Order Total:</span> ₹{{ order.final_amount }}</p>
+                    <p><span class="font-semibold">Payment Method:</span> {{ order.payment_method }}</p>
+                    <p class="col-span-2"><span class="font-semibold">Order Status:</span> 
+                        <span class="bg-green-500 text-white px-2 py-1 rounded-full text-xs">
+                            {{ order.order_status }}
+                        </span>
+                    </p>
+                </div>
+            </div>
+            
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold text-[#e4e1d8] mb-3">Shipping Address</h3>
+                <div class="bg-[#222] p-4 rounded-lg text-[#b8b5ad]">
+                    <p>{{ order.address.name }}</p>
+                    <p>{{ order.address.house_name }}, {{ order.address.street_name }}</p>
+                    <p>{{ order.address.district }}, {{ order.address.state }}</p>
+                    <p>{{ order.address.country }}, {{ order.address.pin_number }}</p>
+                </div>
+            </div>
+            
+            <div>
+                <h3 class="text-xl font-semibold text-[#e4e1d8] mb-4">Order Items</h3>
+                <div class="bg-[#222] rounded-lg overflow-hidden">
+                    <table class="w-full text-[#e4e1d8]">
+                        <thead class="bg-[#333] text-[#b8b5ad]">
+                            <tr>
+                                <th class="py-2 px-4 text-left">Item</th>
+                                <th class="py-2 px-4 text-right">Price</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.order_items.all %}
+                            <tr class="border-b border-gray-700">
+                                <td class="py-3 px-4">
+                                    {{ item.variant.product.product_name }} ({{ item.variant.size }})
+                                    <span class="text-[#b8b5ad] ml-2">x {{ item.quantity }}</span>
+                                </td>
+                                <td class="py-3 px-4 text-right">₹{{ item.price }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="bg-[#333]">
+                                <td class="py-3 px-4 font-semibold">Total</td>
+                                <td class="py-3 px-4 text-right font-semibold">₹{{ order.final_amount }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-[#1a1a1a] py-6 px-8 mt-8 text-center">
+            <a href="{% url 'product:shop_page' %}" class="inline-block bg-blue-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-blue-700 transition-colors duration-300 transform hover:scale-105">
+                Continue Shopping
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
