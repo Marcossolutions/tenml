@@ -1,0 +1,78 @@
+﻿{% extends 'userpart/base_user.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-12 max-w-3xl">
+    <div class="bg-gradient-to-r from-[#2a2a2a] to-[#3a3a3a] rounded-xl shadow-2xl overflow-hidden">
+        <div class="bg-[#1a1a1a] py-6 px-8 border-b border-gray-700">
+            <h1 class="text-3xl font-bold text-[#e4e1d8]">Complete Your Payment</h1>
+        </div>
+        
+        <div class="p-8">
+            <div class="mb-8">
+                <h2 class="text-2xl font-semibold text-[#e4e1d8] mb-4">Order Summary</h2>
+                <div class="bg-[#222] p-6 rounded-lg">
+                    <div class="grid grid-cols-2 gap-4 text-[#b8b5ad]">
+                        <p><span class="font-semibold">Order ID:</span> {{ order.order_id }}</p>
+                        <p><span class="font-semibold">Date:</span> {{ order.date }}</p>
+                        <p><span class="font-semibold">Total Amount:</span> ₹{{ order.final_amount }}</p>
+                        <p><span class="font-semibold">Status:</span> 
+                            <span class="bg-yellow-500 text-black px-2 py-1 rounded-full text-xs">
+                                Awaiting Payment
+                            </span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mb-8">
+                <h3 class="text-xl font-semibold text-[#e4e1d8] mb-3">Payment Details</h3>
+                <div class="bg-[#222] p-6 rounded-lg text-[#b8b5ad]">
+                    <p class="mb-2"><span class="font-semibold">Payment Method:</span> Razorpay</p>
+                    <p><span class="font-semibold">Amount to Pay:</span> ₹{{ order.final_amount }}</p>
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <button id="rzp-button" class="bg-blue-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50">
+                    Pay Now with Razorpay
+                </button>
+            </div>
+        </div>
+        
+        <div class="bg-[#1a1a1a] py-4 px-8 mt-8 text-center">
+            <p class="text-[#b8b5ad] text-sm">
+                By clicking "Pay Now", you agree to our <a href="#" class="text-blue-400 hover:underline">Terms of Service</a> and <a href="#" class="text-blue-400 hover:underline">Privacy Policy</a>.
+            </p>
+        </div>
+    </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+var options = {
+    "key": "{{ razorpay_key_id }}",
+    "amount": "{{ order.final_amount }}00", // Amount in paise
+    "currency": "INR",
+    "name": "Your Company Name",
+    "description": "Order Payment",
+    "order_id": "{{ order.payment_id }}",
+    "handler": function (response){
+        // On successful payment, send the payment details to your server
+        window.location.href = "{{ callback_url }}?razorpay_payment_id=" + response.razorpay_payment_id + "&razorpay_order_id=" + response.razorpay_order_id + "&razorpay_signature=" + response.razorpay_signature;
+    },
+    "prefill": {
+        "name": "{{ order.address.name }}",
+        "email": "{{ request.user.email }}",
+    },
+    "theme": {
+        "color": "#3399cc"
+    }
+};
+var rzp = new Razorpay(options);
+document.getElementById('rzp-button').onclick = function(e){
+    rzp.open();
+    e.preventDefault();
+}
+</script>
+{% endblock %}

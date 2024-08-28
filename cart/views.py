@@ -10,6 +10,7 @@ import logging
 from django.contrib import messages
 from userpanel.models import UserAddress
 from decimal import Decimal
+from userpanel.forms import UserAddressForm
 
 @login_required(login_url='/login/')
 def cart_view(request):
@@ -103,9 +104,6 @@ def clear_cart(request):
     cart.cartitems.all().delete()
     return redirect('cart:cart_view')
 
-def checkout(request):
-    # Implement your checkout logic here
-    return render(request, 'cart/checkout.html')
 
 
 @login_required
@@ -146,7 +144,20 @@ def checkout(request):
     
     return render(request, 'userpart/cart/checkout.html', context)
 
-
+@login_required(login_url='/login/')
+def add_address_checkout(request):
+    if request.method =='POST':
+        form =UserAddressForm(request.POST)
+        if form.is_valid():
+            address= form.save(commit=False)
+            address.user = request.user
+            if address.status:
+                UserAddress.objects.filter(user=request.user,status=True).update(status=False)
+            address.save()
+            return redirect('cart:checkout')
+    else:
+        form = UserAddressForm()
+    return render(request,'userpart/user_interface/add_address.html',{'form':form})
 
 
 

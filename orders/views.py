@@ -1,11 +1,16 @@
-from django.shortcuts import render,redirect, get_object_or_404
+from django.shortcuts import render,redirect, get_object_or_404,HttpResponse
 from django.contrib import messages
 from userpanel.models import UserAddress
 from cart.models import CartItem
 from decimal import Decimal
+from django.urls import reverse
 from .models import OrderAddress,OrderMain,OrderSub
 import uuid
+import razorpay
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.contrib.admin.views.decorators import staff_member_required
 # Create your views here.
 
 
@@ -75,8 +80,20 @@ def place_order(request):
         item.variant.variant_stock -= item.quantity
         item.variant.save()
         cart_items.delete()
-        
     
+    if payment_method == 'Razorpay':
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+        payment_data = {
+            'amount':int(final_amount*100),
+            'currency':'INR',
+            'receipt':order.order_id,
+            'payment_capture':'1'
+        }
+        razorpay_order = client.order.create(data=payment_data)
+        order.payment_id = razorpay_order['id']
+        order.save()
+        
+        return redirect('orders:razorpay_payment',order_id = order.order_id)
     
     messages.success(request,"Order placed successfully!")
     return redirect('orders:order_confirmation',order_id =order.order_id)
@@ -88,3 +105,126 @@ def order_confirmation(request,order_id):
         'order':order,
     }
     return render(request,'userpart/order/order_confirmation.html',context)
+
+@login_required
+def razorpay_payment(request, order_id):
+    order = get_object_or_404(OrderMain, order_id=order_id, user=request.user)
+    client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))   
+    context = {
+        'order': order,
+        'razorpay_key_id': settings.RAZORPAY_KEY_ID,
+        'razorpay_order_id': order.payment_id,
+        'callback_url': request.build_absolute_uri(reverse('orders:razorpay_callback'))
+    }
+    return render(request, 'userpart/order/razorpay_payment.html', context)
+
+def razorpay_callback(request):
+    client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+    if request.method == 'GET':
+        params_dict = {
+            'razorpay_payment_id': request.GET.get('razorpay_payment_id'),
+            'razorpay_order_id': request.GET.get('razorpay_order_id'),
+            'razorpay_signature': request.GET.get('razorpay_signature')
+        }
+    else:
+        params_dict = {
+            'razorpay_payment_id': request.POST.get('razorpay_payment_id'),
+            'razorpay_order_id': request.POST.get('razorpay_order_id'),
+            'razorpay_signature': request.POST.get('razorpay_signature')
+        }
+    try:      
+        client.utility.verify_payment_signature(params_dict)
+        order = OrderMain.objects.get(payment_id=params_dict['razorpay_order_id'])
+        order.order_status = True
+        order.order_status = 'Confirmed'
+        order.save()
+        return redirect('orders:order_confirmation',order_id=order.order_id)
+    except razorpay.errors.SignatureVerificationError:
+       
+        return redirect('orders:payment_failed')
+    
+    except Exception as e:
+        
+        print(f"An error occurred: {str(e)}")
+        return redirect('orders:payment_failed')
+    
+@login_required 
+def payment_failed(request):
+    return render(request,'userpart/order/payment_failed.html')
+
+
+
+
+
+
+ # Admin side order maniulation and listing
+@staff_member_required
+def admin_order_list(request):
+    search_query = request.GET.get('search', '')
+    status_filter = request.GET.get('status', 'Show all')
+    items_per_page = request.GET.get('items_per_page', 10)
+
+    
+    orders = OrderMain.objects.all().order_by('-id')
+    
+    if search_query:
+        orders = orders.filter(order_id__icontains=search_query)
+    if status_filter != 'Show all':
+        orders = orders.filter(order_status=status_filter)
+
+    
+    paginator = Paginator(orders, items_per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'orders': page_obj,
+        'search_query': search_query,
+        'status_filter': status_filter,
+        'items_per_page': items_per_page,
+        'ORDER_STATUS_CHOICES': OrderMain.ORDER_STATUS_CHOICES,
+    }
+    return render(request, 'adminpart/admin_order_list.html', context)
+
+def admin_order_detail(request,order_id):
+    order = get_object_or_404(OrderMain,id=order_id)
+    order_items = OrderSub.objects.filter(main_order=order)
+    context ={
+        'order':order,
+        'order_items':order_items,
+        'ORDER_STATUS_CHOICES':OrderMain.ORDER_STATUS_CHOICES,
+    }
+    return render(request,'adminpart/admin_order_detail.html', context)
+
+def change_order_status(request,order_id):
+    order =get_object_or_404(OrderMain,id=order_id)
+    if request.method == 'POST':
+        new_status=request.POST.get('order_status')
+        current_status=order.order_status
+        invalid_transitions={
+            'Awaiting payment':['Pending'],
+            'Confirmed':['Pending', 'Awaiting payment'],
+            'Shipped': ['Confirmed','Awaiting payment', 'Pending'],
+            'Delivered':['Shipped','Confirmed','Awaiting payment','Pending'],
+            'Canceled':[status for status, _ in OrderMain.ORDER_STATUS_CHOICES],
+            'Returned':[status for status, _ in OrderMain.ORDER_STATUS_CHOICES]
+        }
+        if new_status == 'Returned':
+            messages.error(request,'Order status cannot be changed to Returned directly by the admin.')
+        elif current_status in invalid_transitions and new_status in invalid_transitions[current_status]:
+            messages.error(request,f'Cannot change status from{current_status} to {new_status}.')
+        elif current_status == 'Delivered':
+            messages.error(request, 'Cannot change status of a delivered order.')
+        else:
+            order.order_status = new_status
+            if new_status == 'Delivered' and not order.payment_status:
+                order.payment_status = True
+            if new_status == 'Cancelled' and order.payment_status:
+                refund_amound = order.final_amount
+                # wallet, created =Wallet.objects.get_or_create(user=order.user)
+                # wallet.balance += refund_amount
+                # walled.save()
+            
+            order.save()
+            messages.success(request,'Order status updated successfully.')
+    return redirect('orders:admin_order_detail',order_id=order.id)

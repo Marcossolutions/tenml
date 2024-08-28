@@ -156,3 +156,7 @@ EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'syam.mohan622@gmail.com'
 EMAIL_HOST_PASSWORD = 'ushc uqmc khgo nhdi'
 DEFAULT_FROM_MAIL = 'syam.mohan622@gmail.com'
+
+
+RAZORPAY_KEY_ID = 'rzp_test_UUOn3UBrReMx4B'
+RAZORPAY_KEY_SECRET = 'FVbd82dvygoUXySi7uJE5xT4'

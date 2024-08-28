@@ -1,0 +1,116 @@
+{% extends 'adminpart/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="content-main">
+    <div class="content-header">
+        <h2 class="content-title">Order Details: {{ order.order_id }}</h2>
+        <div>
+            <a href="{% url 'orders:admin-order-list' %}" class="btn btn-outline-primary"><i class="fas fa-list"></i> Order List</a>
+        </div>
+    </div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row mb-4">
+                <!-- Customer Info -->
+                <div class="col-md-4">
+                    <h4 class="card-title mb-3">Customer</h4>
+                    <p><strong>Name:</strong> {{ order.user.username }}</p>
+                    <p><strong>Email:</strong> {{ order.user.email }}</p>
+                    <p><strong>Phone:</strong> {{ order.user.phone_number }}</p>
+                </div>
+                <!-- Order Info -->
+                <div class="col-md-4">
+                    <h4 class="card-title mb-3">Order Info</h4>
+                    <p><strong>Shipping:</strong> {{ order.address.name }}</p>
+                    <p><strong>Pay method:</strong> {{ order.payment_method }}</p>
+                    <p><strong>Status:</strong> 
+                        <span class="badge {% if order.order_status == 'Delivered' %}bg-success{% elif order.order_status == 'Canceled' %}bg-danger{% elif order.order_status == 'Pending' %}bg-warning{% else %}bg-secondary{% endif %}">
+                            {{ order.order_status }}
+                        </span>
+                    </p>
+                    {% if order.order_status != 'Delivered' and order.order_status != 'Canceled' and order.order_status != 'Returned' %}
+                    <form method="POST" action="{% url 'orders:change_order_status' order_id=order.id %}">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <select name="order_status" class="form-select">
+                                {% for status, label in ORDER_STATUS_CHOICES %}
+                                    {% if status != 'Returned' %}
+                                        <option value="{{ status }}" {% if order.order_status == status %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                    {% endif %}
+                                {% endfor %}
+                            </select>
+                            <button type="submit" class="btn btn-primary">Update Status</button>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+                <!-- Delivery Info -->
+                <div class="col-md-4">
+                    <h4 class="card-title mb-3">Deliver to</h4>
+                    <p>{{ order.address.house_name }}, {{ order.address.street_name }}</p>
+                    <p>{{ order.address.district }}, {{ order.address.state }}</p>
+                    <p>{{ order.address.country }}, PIN: {{ order.address.pin_number }}</p>
+                </div>
+            </div>
+            <!-- Order Items Table -->
+            <h4 class="card-title mb-3">Order Items</h4>
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Unit Price</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in order_items %}
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center">
+                                {% if item.variant.product.thumbnail %}
+                                    <img src="{{ item.variant.product.thumbnail.url }}" alt="{{ item.variant.product.product_name }}" class="img-thumbnail" style="width: 50px; height: 50px; object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-secondary text-white rounded" style="width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;">No Image</div>
+                                {% endif %}
+                                <div class="ms-3">
+                                    <p class="mb-0">{{ item.variant.product.product_name }}</p>
+                                    <small class="text-muted">Size: {{ item.variant.size }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>₹{{ item.price }}</td>
+                        <td>{{ item.quantity }}</td>
+                        <td>₹{{ item.total_cost }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <!-- Order Total -->
+            <div class="row justify-content-end mt-4">
+                <div class="col-lg-4 col-sm-6">
+                    <table class="table table-clear">
+                        <tbody>
+                            <tr>
+                                <td class="left"><strong>Subtotal</strong></td>
+                                <td class="right">₹{{ order.total_amount }}</td>
+                            </tr>
+                            <tr>
+                                <td class="left"><strong>Discount</strong></td>
+                                <td class="right">₹{{ order.discount_amount }}</td>
+                            </tr>
+                            <tr>
+                                <td class="left"><strong>Total</strong></td>
+                                <td class="right"><strong>₹{{ order.final_amount }}</strong></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

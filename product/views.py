@@ -201,6 +201,20 @@ def product_detail_page(request, product_id):
     return render(request, 'userpart/user_panel/shop_product-detail.html', context)
 
 
+def check_variant_in_cart(request):
+    variant_id = request.GET.get('variant_id')
+    if not variant_id:
+        return JsonResponse({'error': 'Variant ID is required'}, status=400)
+
+    # Assuming you have a Cart model and CartItem model
+    variant = get_object_or_404(ProductVariant, id=variant_id)
+    cart_item_exists = CartItem.objects.filter(cart__user=request.user, variant=variant, is_active=True).exists()
+
+    if cart_item_exists:
+        return JsonResponse({'in_cart': True})
+    else:
+        return JsonResponse({'in_cart': False})
+
 
 def shop_page(request):
     categories = Category.objects.all()
