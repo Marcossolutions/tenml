@@ -1,6 +1,6 @@
 from django.shortcuts import render,redirect, get_object_or_404,HttpResponse
 from django.contrib import messages
-from userpanel.models import UserAddress
+from userpanel.models import UserAddress,Wallet,WalletTransaction
 from cart.models import CartItem
 from decimal import Decimal
 from django.urls import reverse
@@ -11,6 +11,7 @@ from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.contrib.admin.views.decorators import staff_member_required
+from django.utils import timezone
 # Create your views here.
 
 
@@ -135,7 +136,7 @@ def razorpay_callback(request):
     try:      
         client.utility.verify_payment_signature(params_dict)
         order = OrderMain.objects.get(payment_id=params_dict['razorpay_order_id'])
-        order.order_status = True
+        order.payment_status = True
         order.order_status = 'Confirmed'
         order.save()
         return redirect('orders:order_confirmation',order_id=order.order_id)
@@ -219,12 +220,27 @@ def change_order_status(request,order_id):
             order.order_status = new_status
             if new_status == 'Delivered' and not order.payment_status:
                 order.payment_status = True
-            if new_status == 'Cancelled' and order.payment_status:
-                refund_amound = order.final_amount
-                # wallet, created =Wallet.objects.get_or_create(user=order.user)
-                # wallet.balance += refund_amount
-                # walled.save()
-            
+            if new_status == 'Canceled' and order.payment_status:
+                refund_amount = order.final_amount
+                if order.payment_method == 'Razorpay' or order.payment_method =='wallet':       
+                    wallet, created =Wallet.objects.get_or_create(user=order.user)
+                    wallet.balance += Decimal(refund_amount)
+                    wallet.updated = timezone.now()
+                    wallet.save()
+                    
+                    WalletTransaction.objects.create(
+                        wallet=wallet,
+                        amount=float(refund_amount),
+                        description=f"Refund for canceled order{order.order_id}",
+                        transaction_type='CREDIT'
+                    )
+                    messages.success(request, f'Order {order.order_id} has been canceled and {refund_amount} has been refunded to the user\'s wallet.')
+                else:
+                    messages.success(request, f'Order {order.order_id} has been canceled successfully.')
+                
+                order.payment_status = False
+                
             order.save()
             messages.success(request,'Order status updated successfully.')
+            
     return redirect('orders:admin_order_detail',order_id=order.id)

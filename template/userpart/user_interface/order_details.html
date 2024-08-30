@@ -52,7 +52,7 @@
 
         {% if order.order_status == 'Pending' %}
         <div class="mt-6">
-            <a href="{% url 'orders:cancel_order' order.order_id %}" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition duration-300" onclick="return confirm('Are you sure you want to cancel this order?')">Cancel Order</a>
+            <a href="" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition duration-300" onclick="return confirm('Are you sure you want to cancel this order?')">Cancel Order</a>
         </div>
         {% endif %}
     </div>

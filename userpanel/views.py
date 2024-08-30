@@ -1,10 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404,get_list_or_404
-from .models import UserProfile,UserAddress
+from .models import UserProfile,UserAddress, Wallet,WalletTransaction
 from django.contrib.auth.decorators import login_required
 from .forms import UserPofileForm,UserAddressForm,EditUserProfileForm
 from django.core.paginator import Paginator
 from django.contrib import messages
 from orders.models import OrderMain,OrderSub
+from django.db import transaction
+from decimal import Decimal
+from django.utils import timezone
+from django.views.decorators.http import require_POST
 
 
 
@@ -12,22 +16,34 @@ from orders.models import OrderMain,OrderSub
 @login_required(login_url='/login/')
 def view_profile(request):
     user_profile,created = UserProfile.objects.get_or_create(user=request.user)
+    
     addresses = UserAddress.objects.filter(user =request.user,is_deleted=False)
+    addresses_count = addresses.count()
     address_paginator= Paginator(addresses,3)
     address_page = request.GET.get('address_page')
     paginated_addresses = address_paginator.get_page(address_page)
     
-    orders= OrderMain.objects.filter(user= request.user).order_by('-date')
-    order_paginator = Paginator(orders,5)
+    orders= OrderMain.objects.filter(user= request.user).order_by('-id')
+    orders_count= orders.count()
+    order_paginator = Paginator(orders,3)
     order_page = request.GET.get('order_page')
     paginated_orders = order_paginator.get_page(order_page)
+    
     for order in paginated_orders:
         order.items= OrderSub.objects.filter(main_order=order)
+        
+    wallet,_ = Wallet.objects.get_or_create(user=request.user)
+    wallet_transactions= wallet.transactions.all()[:3]
+    
     context = {
         'user':request.user,
         'user_profile':user_profile,
         'addresses':paginated_addresses,
-        'orders':paginated_orders
+        'orders':paginated_orders,
+        'wallet':wallet,
+        'wallet_transactions':wallet_transactions,
+        'addresses_count':addresses_count,
+        'orders_count':orders_count
     }
     return render(request,'userpart/user_interface/view_profile.html',context)
 
@@ -91,19 +107,31 @@ def order_detail(request,order_id):
     return render (request,'userpart/user_interface/order_details.html',context)
 
 def cancel_order(request,order_id):
-    order = get_object_or_404(OrderMain,order_id,user=request.user)
+    order = get_object_or_404(OrderMain,order_id=order_id,user=request.user)
     
-    if order.order_status !='Pending':
-        messages.error(request,"This order cannot be canceled.")
+    if order.order_status not in ['Pending','Confirmed','Shipped']:
+        messages.error(request,"This order cannot be canceled at this stage.")
         return redirect ('userpanel:view_profile')
+       
+    if  order.payment_method=='Razorpay' or order.payment_method== 'wallet':
+        
+        wallet,created= Wallet.objects.get_or_create(user=request.user)
+        wallet.balance += Decimal(order.final_amount)
+        wallet.updated_at = timezone.now()
+        wallet.save()
     
-    order.order_status = 'Canceled'
-    order.save()
-    
-    order_items = OrderSub.objects.filter(main_order=order)
-    for item in order_items:
-        item.variant.variant_stock += item.quantity
-        item.variant.save()
-    
-    messages.success(request,"Your order has been successfully canceled.")
-    return redirect('userpanel:veiw_profile')
+        WalletTransaction.objects.create(
+            wallet=wallet,
+            amount=float(order.final_amount),
+            description  =f"Refund for canceled order {order.order_id}",
+            transaction_type='CREDIT'
+            
+        )
+        
+        order.order_status='Canceled'
+        order.save()
+        messages.success(request, f'Order {order.order_id} has been canceled and {order.final_amount} has been refunded to your wallet.')
+    else:
+        messages.success(request, f'Order {order.order_id} has been canceled successfully.')
+
+    return redirect('userpanel:view_profile')
