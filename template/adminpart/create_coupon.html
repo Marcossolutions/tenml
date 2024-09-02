@@ -1,0 +1,82 @@
+{% extends 'adminpart/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="content-main">
+    <div class="content-header">
+        <h2 class="content-title">{{ action }} Coupon</h2>
+    </div>
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-4">
+                    <label for="{{ form.coupon_name.id_for_label }}" class="form-label">Coupon Name</label>
+                    {{ form.coupon_name }}
+                    {{ form.coupon_name.errors }}
+                </div>
+                <div class="mb-4">
+                    <label for="{{ form.coupon_code.id_for_label }}" class="form-label">Coupon Code</label>
+                    <div class="input-group">
+                        {{ form.coupon_code }}
+                        <button type="button" class="btn btn-outline-secondary" id="refresh-coupon-code">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    {{ form.coupon_code.errors }}
+                </div>
+                <div class="mb-4">
+                    <label for="{{ form.minimum_amount.id_for_label }}" class="form-label">Minimum Amount</label>
+                    {{ form.minimum_amount }}
+                    {{ form.minimum_amount.errors }}
+                </div>
+                <div class="mb-4">
+                    <label for="{{ form.discount.id_for_label }}" class="form-label">Discount (%)</label>
+                    {{ form.discount }}
+                    {{ form.discount.errors }}
+                </div>
+                <div class="mb-4">
+                    <label for="{{ form.maximum_amount.id_for_label }}" class="form-label">Maximum Amount</label>
+                    {{ form.maximum_amount }}
+                    {{ form.maximum_amount.errors }}
+                </div>
+                <div class="mb-4">
+                    <label for="{{ form.expiry_date.id_for_label }}" class="form-label">Expiry Date</label>
+                    {{ form.expiry_date }}
+                    {{ form.expiry_date.errors }}
+                </div>
+                <div class="mb-4">
+                    <label for="{{ form.status.id_for_label }}" class="form-check-label">
+                        {{ form.status }}
+                        Active
+                    </label>
+                    {{ form.status.errors }}
+                </div>
+                <div class="d-flex">
+                    <button type="submit" class="btn btn-primary">Save Coupon</button>
+                    <a href="{% url 'coupon:coupon_list' %}" class="btn btn-outline-secondary ms-3">Cancel</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const refreshButton = document.getElementById('refresh-coupon-code');
+        const couponCodeInput = document.getElementById('{{ form.coupon_code.id_for_label }}');
+
+        refreshButton.addEventListener('click', function() {
+            fetch('{% url "coupon:generate_coupon_code" %}')
+                .then(response => response.json())
+                .then(data => {
+                    couponCodeInput.value = data.coupon_code;
+                })
+                .catch(error => console.error('Error:', error));
+        });
+    });
+</script>
+{% endblock %}
+
+{% endblock %}
