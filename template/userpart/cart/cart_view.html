@@ -10,12 +10,12 @@
         <div class="lg:col-span-2">
             {% for item in cart_items %}
             <div class="bg-[#2a2a2a] rounded-lg mb-4 p-4 flex items-center" data-cart-item-id="{{ item.id }}">
-                <input type="checkbox" class="cart-item-checkbox mr-4" name="selected_items[]" value="{{ item.id }}" data-price="{{ item.variant.variant_price }}" checked>
+                <input type="checkbox" class="cart-item-checkbox mr-4" name="selected_items[]" value="{{ item.id }}" data-price="{{ item.variant.get_discounted_amount }}" checked>
                 <img src="{{ item.product.thumbnail.url }}" alt="{{ item.product.product_name }}" class="w-24 h-24 object-cover rounded-md mr-4">
                 <div class="flex-grow">
                     <h2 class="text-xl font-semibold text-[#e4e1d8]">{{ item.product.product_name }}</h2>
                     <p class="text-[#e4e1d8] mt-1">size:{{ item.variant.size }}</p>
-                    <p class="text-[#e4e1d8] mt-1">₹{{ item.variant.variant_price }}</p>
+                    <p class="text-[#e4e1d8] mt-1">₹{{ item.variant.get_discounted_amount }}</p>
                     <p class="text-[#e4e1d8] mt-1">Stock: <span class="stock-quantity" data-stock="{{ item.variant.variant_stock }}">{{ item.variant.variant_stock }}</span></p>
                     <div class="flex items-center mt-2">
                         <button 

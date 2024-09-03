@@ -13,24 +13,34 @@
                 <span class="material-symbols-outlined">trending_flat</span>
             </p>
         </a>
-        <div class="mr-auto ml-auto w-[1008px]">
-            <p class="text-white text-center text-4xl font-bold font-medium">Popular Products</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-8">
+        <div class="mx-auto w-full max-w-7xl px-4">
+            <p class="text-white text-center text-4xl font-bold mb-12">Popular Products</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
                 {% for product in products %}
-                <div class="bg-[#e4e1d8] rounded-md drop-shadow-md cursor-pointer">
-                    <a href="{% url 'product:product_detail_page' product.id %}">
+                <div class="bg-[#e4e1d8] rounded-lg shadow-lg overflow-hidden relative group transform transition duration-300 hover:scale-105">
+                    <a href="{% url 'product:product_detail_page' product.id %}" class="block relative">
                         {% if product.thumbnail %}
-                        <img class="h-[240px] w-full rounded-md object-cover" src="{{ product.thumbnail.url }}" alt="{{ product.product_name }}">
+                        <img class="h-[300px] w-full object-cover" src="{{ product.thumbnail.url }}" alt="{{ product.product_name }}">
                         {% else %}
-                        <img class="h-[240px] w-full rounded-md object-cover" src="{% static 'path/to/default/image.jpg' %}" alt="{{ product.product_name }}">
+                        <img class="h-[300px] w-full object-cover" src="{% static 'path/to/default/image.jpg' %}" alt="{{ product.product_name }}">
                         {% endif %}
+                        {% with variant=product.productvariant_set.first %}
+                            {% if variant and variant.discount_percentage > 0 %}
+                            <div class="absolute top-4 left-4 bg-red-500 text-white font-bold py-2 px-4 rounded-full transform rotate-0 shadow-md">
+                                {{ variant.discount_percentage|floatformat:0 }}% OFF
+                            </div>
+                            {% endif %}
+                        {% endwith %}
                     </a>
-                    <div class="p-2">
-                        <p class="text-center text-base font-extrabold">{{ product.product_name }}</p>
-                        <p class="text-center text-sm font-extrabold">₹{{ product.price }}</p>
-                        {% if product.offer_price %}
-                        <p class="text-center text-sm font-extrabold text-red-500">Offer Price: ₹{{ product.offer_price }}</p>
-                        {% endif %}
+                    <div class="p-6">
+                        <h3 class="text-center text-xl font-bold mb-4 truncate">{{ product.product_name }}</h3>
+                        {% with variant=product.productvariant_set.first %}
+                            {% if variant %}
+                                <p class="text-center text-2xl font-bold text-gray-800">₹{{ variant.variant_price|floatformat:2 }}</p>
+                            {% else %}
+                                <p class="text-center text-2xl font-bold text-gray-800">₹{{ product.price|floatformat:2 }}</p>
+                            {% endif %}
+                        {% endwith %}
                     </div>
                 </div>
                 {% endfor %}

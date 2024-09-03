@@ -105,12 +105,18 @@
                                         </h5>
                                         <p class="text-gray-400">{{ product.product_category.category_name }}</p>
                                         <div class="product-price mt-2">
-                                            {% if product.offer_price %}
-                                                <span class="text-lg font-semibold text-red-500">₹ {{ product.offer_price }}</span>
-                                                <span class="line-through text-gray-500 ml-2">₹ {{ product.price }}</span>
-                                            {% else %}
-                                                <span class="text-lg font-semibold">₹ {{ product.price }}</span>
-                                            {% endif %}
+                                            {% with variant=product.productvariant_set.first %}
+                                                {% if variant %}
+                                                    {% if variant.discount_percentage > 0 %}
+                                                        <span class="text-lg font-semibold text-red-500">₹ {{ variant.get_discounted_amount|floatformat:2 }}</span>
+                                                        <span class="line-through text-gray-500 ml-2">₹ {{ variant.variant_price|floatformat:2 }}</span>
+                                                    {% else %}
+                                                        <span class="text-lg font-semibold">₹ {{ variant.variant_price|floatformat:2 }}</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-lg font-semibold">₹ {{ product.price|floatformat:2 }}</span>
+                                                {% endif %}
+                                            {% endwith %}
                                         </div>
                                     </div>
                                 </div>

@@ -9,7 +9,9 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import User
 from django.contrib.auth import authenticate, login ,logout
-from product.models import Product ,ProductImage, Category
+from product.models import Product ,ProductImage, ProductVariant
+from category.models import Category
+from django.db.models import Prefetch
 from django.core.exceptions import ObjectDoesNotExist
 from .signals import user_registered
 
@@ -115,14 +117,22 @@ def login_page(request):
 
 
 
+from django.shortcuts import render
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Prefetch
+from category.models import Category
+from product.models import Product, ProductVariant
+
 def home(request):
     try:
         categories = Category.objects.filter(is_listed=True)[:4]
-        products = Product.objects.filter(is_active=True)[:4]
+        products = Product.objects.filter(is_active=True).prefetch_related(
+            Prefetch('productvariant_set', queryset=ProductVariant.objects.filter(variant_status=True))
+        )[:4]
         
-        context ={
-            'products' : products,
-            'categories' : categories
+        context = {
+            'products': products,
+            'categories': categories
         }
 
         if request.user.is_authenticated:
@@ -131,13 +141,11 @@ def home(request):
         return render(request, 'userpart/user_panel/home_page.html', context)
 
     except ObjectDoesNotExist:
-       
         context = {
             'products': [],
-            'categories':[],
+            'categories': [],
         }
         return render(request, 'userpart/user_panel/home_page.html', context)
-
 
 def signout(request):
     logout(request)

@@ -23,8 +23,16 @@
                 <div class="col-md-8">
                     <h3>{{ product.product_name }}</h3>
                     <p><strong>Category:</strong> {{ product.product_category }}</p>
-                    <p><strong>Price:</strong> ₹{{ product.price }}</p>
-                    <p><strong>Offer Price:</strong> ₹{{ product.offer_price }}</p>
+                    <p><strong>Price:</strong> ₹{{ default_price }}</p>
+                
+                    {% if variants %}
+                        {% for variant in variants %}
+                            {% if variant.discount_percentage > 0 %}
+                                <p><strong>Discount Percentage:</strong> {{ variant.discount_percentage }}%</p>
+                                <p><strong>Discounted Amount:</strong> ₹{{ variant.get_discounted_amount }}</p>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
                     <p><strong>Status:</strong> 
                         {% if product.is_active %}
                             <span class="badge bg-success">Active</span>

@@ -7,15 +7,18 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from django.contrib.auth.decorators import login_required
 from cart.models import CartItem,Cart
+from django.shortcuts import render, redirect
+from django.contrib import messages
+from .forms import Productform
+
+
 
 def product_list(request):
     products = Product.objects.all().order_by('-created_at')
     context = {'products': products}
     return render(request, 'adminpart/product_list.html', context)
 
-from django.shortcuts import render, redirect
-from django.contrib import messages
-from .forms import Productform
+
 
 def create_product(request):
     if request.method == 'POST':
@@ -74,9 +77,16 @@ def edit_product(request, product_id):
 def product_detail(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     product_images = ProductImage.objects.filter(product=product)
+    variants = ProductVariant.objects.filter(product=product)
+    default_price = variants.first().variant_price if variants.exists() else product.price
+    
+    for variant in variants:
+        variant.discounted_amount=variant.get_discounted_amount()
     context = {
         'product': product,
         'product_images': product_images,
+        'variants': variants,
+        'default_price' : default_price
     }
     return render(request, 'adminpart/product_detail.html', context)
 
@@ -106,7 +116,12 @@ def create_variant(request,product_id):
             return redirect('product:variant_details',product_id = product.id)
     else:
         form = ProductVariantForm()
-    return render(request,'adminpart/variant/create_variant.html',{'form':form, 'product':product})
+        
+    context = {
+        'form':form,
+        'product':product
+    }
+    return render(request,'adminpart/variant/create_variant.html',context)
 
 def edit_variant(request, variant_id):
     variant = get_object_or_404(ProductVariant, id= variant_id)
@@ -115,6 +130,7 @@ def edit_variant(request, variant_id):
         form = ProductVariantForm(request.POST, instance = variant)
         if form.is_valid():
             form.save()
+            messages.success(request,'Variant updated successfully.')
             return redirect ('product:variant_details', product_id = variant.product.id)
         
     else:
@@ -201,24 +217,45 @@ def product_detail_page(request, product_id):
     return render(request, 'userpart/user_panel/shop_product-detail.html', context)
 
 
+@login_required(login_url='/login/')
 def check_variant_in_cart(request):
-    variant_id = request.GET.get('variant_id')
-    if not variant_id:
-        return JsonResponse({'error': 'Variant ID is required'}, status=400)
+    if request.method == 'POST':
+        variant_id = request.POST.get('variant_id')
+        try:
+            variant = ProductVariant.objects.get(id=variant_id)
+            cart = Cart.objects.get(user=request.user)
+            in_cart = CartItem.objects.filter(cart=cart, variant=variant).exists()
+            return JsonResponse({'status': 'success', 'in_cart': in_cart})
+        except ProductVariant.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Invalid variant.'}, status=400)
+        except Cart.DoesNotExist:
+            return JsonResponse({'status': 'success', 'in_cart': False})
 
-    # Assuming you have a Cart model and CartItem model
-    variant = get_object_or_404(ProductVariant, id=variant_id)
-    cart_item_exists = CartItem.objects.filter(cart__user=request.user, variant=variant, is_active=True).exists()
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)
 
-    if cart_item_exists:
-        return JsonResponse({'in_cart': True})
-    else:
-        return JsonResponse({'in_cart': False})
 
+# def check_variant_in_cart(request):
+#     variant_id = request.GET.get('variant_id')
+#     if not variant_id:
+#         return JsonResponse({'error': 'Variant ID is required'}, status=400)
+
+#     # Assuming you have a Cart model and CartItem model
+#     variant = get_object_or_404(ProductVariant, id=variant_id)
+#     cart_item_exists = CartItem.objects.filter(cart__user=request.user, variant=variant, is_active=True).exists()
+
+#     if cart_item_exists:
+#         return JsonResponse({'in_cart': True})
+#     else:
+#         return JsonResponse({'in_cart': False})
+
+from django.db.models import Prefetch, Min, Max
+from decimal import Decimal
 
 def shop_page(request):
     categories = Category.objects.all()
-    products = Product.objects.filter(is_active=True)
+    products = Product.objects.filter(is_active=True).prefetch_related(
+        Prefetch('productvariant_set', queryset=ProductVariant.objects.filter(variant_status=True))
+    )
 
     search_query = request.GET.get('search_query', '')
     selected_categories = request.GET.getlist('category')
@@ -226,22 +263,28 @@ def shop_page(request):
     max_price = request.GET.get('max_price')
 
     if search_query:
-        products = products.filter(Q(product_name__icontains=search_query) | Q(product_description__icontains=search_query))
+        products = products.filter(Q(product_name__icontains=search_query) | Q(product_decription__icontains=search_query))
 
     if selected_categories:
         products = products.filter(product_category__id__in=selected_categories)
 
     if min_price:
-        products = products.filter(price__gte=min_price)
+        min_price = Decimal(min_price)
+        products = products.annotate(min_variant_price=Min('productvariant__variant_price')).filter(
+            Q(min_variant_price__gte=min_price) | Q(price__gte=min_price)
+        )
 
     if max_price:
-        products = products.filter(price__lte=max_price)
+        max_price = Decimal(max_price)
+        products = products.annotate(max_variant_price=Max('productvariant__variant_price')).filter(
+            Q(max_variant_price__lte=max_price) | Q(price__lte=max_price)
+        )
 
     sort_by = request.GET.get('sort', 'featured')
     if sort_by == 'price_low_high':
-        products = products.order_by('price')
+        products = products.annotate(min_price=Min('productvariant__variant_price')).order_by('min_price', 'price')
     elif sort_by == 'price_high_low':
-        products = products.order_by('-price')
+        products = products.annotate(max_price=Max('productvariant__variant_price')).order_by('-max_price', '-price')
     elif sort_by == 'new_arrivals':
         products = products.order_by('-created_at')
     elif sort_by == 'name_az':
@@ -260,6 +303,7 @@ def shop_page(request):
     }
 
     return render(request, 'userpart/user_panel/shop_page.html', context)
+
 
 def search_product(request):
     search_query= request.GET.get('q'),

@@ -115,27 +115,45 @@
         <div class="product-info-container bg-[#2a2a2a] p-6 rounded-lg">
             <p class="text-lg text-gray-400 mb-2">{{ product.product_category.category_name }}</p>
             <div class="variant-info my-4">
-                <p id="variant-price" class="text-xl font-semibold">Price: ₹{{ product.productvariant_set.first.variant_price }}</p>
-                <p id="variant-stock" class="text-md font-medium">Stock: {{ product.productvariant_set.first.variant_stock }} units</p>
+                <p id="variant-price" class="text-xl font-semibold">
+                    Price: ₹
+                    {% if product.productvariant_set.first.discount_percentage > 0 %}
+                        <span class="line-through">{{ product.productvariant_set.first.variant_price|floatformat:2 }}</span>
+                    {% else %}
+                        ₹{{ product.productvariant_set.first.variant_price|floatformat:2 }}
+                    {% endif %}
+                </p>
+                <p id="variant-discount" class="text-md font-medium">
+                    Discount: <span id="discount">{{ product.productvariant_set.first.discount_percentage|floatformat:0 }}</span>%
+                </p>
+                <p id="variant-discounted-price" class="text-xl font-semibold">
+                    Discounted Price: ₹<span id="discounted-price">{{ product.productvariant_set.first.get_discounted_amount|floatformat:2 }}</span>
+                </p>
+                <p id="variant-stock" class="text-md font-medium">
+                    Stock: <span id="stock">{{ product.productvariant_set.first.variant_stock }}</span> units
+                </p>
             </div>
             <p class="mb-4 text-gray-300">{{ product.product_decription }}</p>
         
             <!-- Variant Size Buttons -->
-<div class="variant-sizes my-4">
-    <label for="variant-size" class="block mb-2 font-semibold">Select Size:</label>
-    <div id="variant-size">
-        {% for variant in product.productvariant_set.all %}
-            <button 
-                class="variant-btn px-4 py-2 m-2 border rounded {% if forloop.first %}selected{% endif %} {{ variant.variant_status|yesno:'bg-green-500:bg-red-500' }}"
-                data-variant-id="{{ variant.id }}"
-                data-variant-price="{{ variant.variant_price }}"
-                data-variant-stock="{{ variant.variant_stock }}"
-                onclick="updateSelectedVariant(this)">
-                {{ variant.size }}
-            </button>
-        {% endfor %}
-    </div>
-</div>
+            <div class="variant-sizes my-4">
+                <label for="variant-size" class="block mb-2 font-semibold">Select Size:</label>
+                <div id="variant-size" class="flex flex-wrap gap-2">
+                    {% for variant in product.productvariant_set.all %}
+                        <!-- Variant button styled as a box -->
+                        <button class="variant-btn px-4 py-2 border rounded-md shadow-sm" 
+                                    data-variant-id="{{ variant.id }}" 
+                                    data-variant-price="{{ variant.variant_price }}" 
+                                    data-variant-stock="{{ variant.variant_stock }}"
+                                    data-variant-discount="{{ variant.discount_percentage }}"
+                                    data-variant-discounted-price="{{ variant.get_discounted_amount }}"
+                                    onclick="updateSelectedVariant(this)">
+                            {{ variant.size }} 
+                        </button>
+                    {% endfor %}
+                </div>
+            </div>
+
         
             <div class="flex items-center mb-4">
                 <!-- Add to Cart Button -->
@@ -161,6 +179,7 @@
                     <span class="text-red-500">Out of Stock</span>
                 {% endif %}
             </p>
+            
             <p class="text-gray-400 mt-2">Free shipping on orders over ₹500</p>
             
             <div class="mt-6">
@@ -229,133 +248,147 @@
 
 <script>
     let selectedVariantId = null;
-
-function updateSelectedVariant(button) {
-    selectedVariantId = button.getAttribute('data-variant-id');
-    document.getElementById('variant-id').value = selectedVariantId;
-    
-    // Update price and stock display
-    document.getElementById('variant-price').textContent = 'Price: $' + button.getAttribute('data-variant-price');
-    document.getElementById('variant-stock').textContent = 'Stock: ' + button.getAttribute('data-variant-stock') + ' units';
-    
-    // Highlight the selected button
-    document.querySelectorAll('.variant-btn').forEach(btn => {
-        btn.classList.remove('selected');
-        btn.classList.remove('bg-green-500');
-        btn.classList.add(btn.getAttribute('data-variant-stock') > 0 ? 'bg-blue-500' : 'bg-red-500');
-    });
-    button.classList.add('selected');
-    button.classList.remove('bg-blue-500', 'bg-red-500');
-    button.classList.add('bg-green-500');
-    // Update stock status
-    const stockStatus = document.getElementById('stock-status');
-    const variantStock = parseInt(button.getAttribute('data-variant-stock'));
     const addToCartBtn = document.getElementById('add-to-cart-btn');
-    if (variantStock > 0) {
-        stockStatus.textContent = 'In Stock';
-        stockStatus.className = 'text-green-500';
-        addToCartBtn.disabled = false;
-        addToCartBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-        addToCartBtn.classList.add('bg-blue-500', 'hover:bg-blue-600');
-    } else {
-        stockStatus.textContent = 'Out of Stock';
-        stockStatus.className = 'text-red-500';
-        addToCartBtn.disabled = true;
-        addToCartBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-400');
-        addToCartBtn.classList.remove('bg-blue-500', 'hover:bg-blue-600');
-    }
 
-}
+    function updateSelectedVariant(button) {
+        selectedVariantId = button.getAttribute('data-variant-id');
+        document.getElementById('variant-id').value = selectedVariantId;
 
-function addToCart() {
-    if (!selectedVariantId) {
-        Swal.fire({
-            position: 'top-end',
-            icon: 'error',
-            title: 'Please select a size',
-            showConfirmButton: false,
-            timer: 2000,
-            toast: true
-        });
-        return;
-    }
+        // Update stock status based on selected variant
+        const variantStock = parseInt(button.getAttribute('data-variant-stock'));
+        const stockStatus = document.getElementById('stock-status');
 
-    const form = document.getElementById('add-to-cart-form');
-    const formData = new FormData(form);
-    formData.set('variant_id', selectedVariantId);
+        if (variantStock > 0) {
+            stockStatus.textContent = 'In Stock';
+            stockStatus.className = 'text-green-500';
+            addToCartBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+        } else {
+            stockStatus.textContent = 'Out of Stock';
+            stockStatus.className = 'text-red-500';
+            addToCartBtn.classList.add('opacity-50', 'cursor-not-allowed');
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', form.action, true);
-    xhr.setRequestHeader('X-CSRFToken', form.querySelector('[name=csrfmiddlewaretoken]').value);
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState === XMLHttpRequest.DONE) {
-            const response = JSON.parse(xhr.responseText);
-            if (response.status === 'success') {
-                Swal.fire({
-                    position: 'top-end',
-                    icon: 'success',
-                    title: 'Added to cart!',
-                    showConfirmButton: false,
-                    timer: 2000,
-                    toast: true
-                });
-                const addToCartBtn = document.getElementById('add-to-cart-btn');
-                addToCartBtn.textContent = 'Go to Cart';
-                addToCartBtn.removeEventListener('click', addToCart);
-                addToCartBtn.addEventListener('click', goToCart);                
-            } else {
-                Swal.fire({
-                    position: 'top-end',
-                    icon: 'error',
-                    title: response.message || 'Failed to add to cart',
-                    showConfirmButton: false,
-                    timer: 2000,
-                    toast: true
-                });
-            }
         }
-    };
-    xhr.send(formData);
-}
 
-function goToCart() {
-    window.location.href = "{% url 'cart:cart_view' %}";
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const firstVariantButton = document.querySelector('.variant-btn');
-    if (firstVariantButton) {
-        updateSelectedVariant(firstVariantButton);
+        // Check if the variant is in the cart
+        checkVariantInCart(selectedVariantId);
     }
 
-    const addToCartBtn = document.getElementById('add-to-cart-btn');
-    if (addToCartBtn.textContent.trim() === 'Add to Cart') {
-        addToCartBtn.addEventListener('click', function(e) {
-            if (this.disabled) {
-                e.preventDefault();
-                Swal.fire({
-                    title: 'Out of Stock',
-                    text: 'This variant is currently out of stock.',
-                    icon: 'warning',
-                    confirmButtonText: 'OK'
-                });
-            } else {
-                addToCart();
+    function checkVariantInCart(variantId) {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '{% url "product:check_variant_in_cart" %}', true);
+        xhr.setRequestHeader('X-CSRFToken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+        xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                const response = JSON.parse(xhr.responseText);
+                const addToCartBtn = document.getElementById('add-to-cart-btn');
+                if (response.status === 'success') {
+                    if (response.in_cart) {
+                        addToCartBtn.textContent = 'Go to Cart';
+                        addToCartBtn.removeEventListener('click', addToCart);
+                        addToCartBtn.addEventListener('click', goToCart);
+                    } else {
+                        addToCartBtn.textContent = 'Add to Cart';
+                        addToCartBtn.removeEventListener('click', goToCart);
+                        addToCartBtn.addEventListener('click', addToCart);
+                    }
+                } else {
+                    Swal.fire({
+                        position: 'top-end',
+                        icon: 'error',
+                        title: response.message || 'Error checking cart status',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        toast: true
+                    });
+                }
             }
-        });
-    } else {
-        addToCartBtn.addEventListener('click', goToCart);
+        };
+        xhr.send(`variant_id=${variantId}`);
     }
-});
- 
-    
+
+    function addToCart() {
+        if (!selectedVariantId) {
+            Swal.fire({
+                position: 'top-end',
+                icon: 'error',
+                title: 'Please select a size',
+                showConfirmButton: false,
+                timer: 2000,
+                toast: true
+            });
+            return;
+        }
+
+        const form = document.getElementById('add-to-cart-form');
+        const formData = new FormData(form);
+        formData.set('variant_id', selectedVariantId);
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', form.action, true);
+        xhr.setRequestHeader('X-CSRFToken', form.querySelector('[name=csrfmiddlewaretoken]').value);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE) {
+                const response = JSON.parse(xhr.responseText);
+                if (response.status === 'success') {
+                    Swal.fire({
+                        position: 'top-end',
+                        icon: 'success',
+                        title: 'Added to cart!',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        toast: true
+                    });
+                    const addToCartBtn = document.getElementById('add-to-cart-btn');
+                    addToCartBtn.textContent = 'Go to Cart';
+                    addToCartBtn.removeEventListener('click', addToCart);
+                    addToCartBtn.addEventListener('click', goToCart);                
+                } else {
+                    Swal.fire({
+                        position: 'top-end',
+                        icon: 'error',
+                        title: response.message || 'Failed to add to cart',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        toast: true
+                    });
+                }
+            }
+        };
+        xhr.send(formData);
+    }
+
+    function goToCart() {
+        window.location.href = "{% url 'cart:cart_view' %}";
+    }
+
     document.addEventListener('DOMContentLoaded', function() {
         const firstVariantButton = document.querySelector('.variant-btn');
         if (firstVariantButton) {
             updateSelectedVariant(firstVariantButton);
         }
+
+        const addToCartBtn = document.getElementById('add-to-cart-btn');
+        if (addToCartBtn.textContent.trim() === 'Add to Cart') {
+            addToCartBtn.addEventListener('click', function(e) {
+                if (this.disabled) {
+                    e.preventDefault();
+                    Swal.fire({
+                        title: 'Out of Stock',
+                        text: 'This variant is currently out of stock.',
+                        icon: 'warning',
+                        confirmButtonText: 'OK'
+                    });
+                } else {
+                    addToCart();
+                }
+            });
+        } else {
+            addToCartBtn.addEventListener('click', goToCart);
+        }
     });
 </script>
+
 
 <script>
     function changeMainImage(src) {
@@ -364,21 +397,34 @@ document.addEventListener('DOMContentLoaded', function() {
 
 </script>
 <script>
-// JavaScript to handle size selection and price/stock updates
+// JavaScript to handle size selection and price/stock/discount updates
 const variantButtons = document.querySelectorAll('.variant-btn');
 const priceDisplay = document.getElementById('variant-price');
 const stockDisplay = document.getElementById('variant-stock');
+const discountDisplay = document.getElementById('variant-discount');
+const discountedPriceDisplay = document.getElementById('variant-discounted-price');
 const variantIdInput = document.getElementById('variant-id');
 
 variantButtons.forEach(button => {
     button.addEventListener('click', function() {
         const price = this.getAttribute('data-variant-price');
         const stock = this.getAttribute('data-variant-stock');
-        priceDisplay.textContent = `Price: $${price}`;
+        const discount = this.getAttribute('data-variant-discount');
+        const discountedPrice = this.getAttribute('data-variant-discounted-price');
+        
+        // Update price, stock, discount, and discounted price display
+        priceDisplay.innerHTML = `Price: ₹ <span class="line-through">${price}</span>`;
         stockDisplay.textContent = `Stock: ${stock} units`;
-        variantIdInput.value = this.value;
+        discountDisplay.textContent = `Discount: ${parseInt(discount)}%`; // Display discount as an integer
+        discountedPriceDisplay.textContent = `Discounted Price: ₹${parseFloat(discountedPrice).toFixed(2)}`;
+
+
+        
+        // Update hidden input with selected variant ID
+        variantIdInput.value = this.getAttribute('data-variant-id');
     });
 });
+
 </script>
 
 {% endblock content %}

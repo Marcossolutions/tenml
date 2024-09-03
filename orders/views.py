@@ -24,6 +24,7 @@ def place_order(request):
     
     user  = request.user
     cart_item_ids = request.POST.get('cart_item_ids','').split(',')
+    print("cart ids:",cart_item_ids)
     address_id = request.POST.get('address_id')
     payment_method= request.POST.get('payment_method')
     
@@ -75,7 +76,7 @@ def place_order(request):
             main_order = order,
             variant = item.variant,
             quantity = item.quantity,
-            price = item.variant.variant_price
+            price = item.variant.get_discounted_amount()
             
         )
         item.variant.variant_stock -= item.quantity
