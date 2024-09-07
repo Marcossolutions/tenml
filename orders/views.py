@@ -12,6 +12,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils import timezone
+from django.db import transaction
+from coupon.models import Coupon,UserCoupon
 # Create your views here.
 
 
@@ -26,7 +28,7 @@ def place_order(request):
     cart_item_ids = request.POST.get('cart_item_ids','').split(',')
     print("cart ids:",cart_item_ids)
     address_id = request.POST.get('address_id')
-    payment_method= request.POST.get('payment_method')
+    payment_method = request.POST.get('payment_method')
     
     if not cart_item_ids or not address_id or not payment_method:
         messages.error(request,"Invalid order data. Please try again.")
@@ -56,20 +58,44 @@ def place_order(request):
         return redirect('cart:checkout')
     
     cart_total = sum(item.get_total_price() for item in cart_items )
+    applied_coupon = request.session.get('applied_coupon')
     discount_amount = Decimal('0.00')
+    coupon_code = None
     
-    final_amount = cart_total-discount_amount
+    if applied_coupon:
+        coupon_code =applied_coupon['coupon_code']
+        try:
+            coupon =Coupon.objects.get(coupon_code=coupon_code,status=True)
+            
+            if not UserCoupon.objects.filter(user=user,coupon=coupon,redeemed=True).exists():
+                if coupon.is_valid() and cart_total >=coupon.minimum_amount:
+                    discount_amount = Decimal(str(applied_coupon['discount_amount']))
+                    if coupon.maximum_amount >0:
+                        discount_amount = min(discount_amount,Decimal(str(coupon.maximum_amount)))
+            else:
+                messages.warning(request,"This coupon has already been used.")
+                coupon_code = None
+                if 'applied_coupon' in request.session:
+                    del request.session['applied_coupon']
+        except Coupon.DoesNotExist:
+            messages.error(request,"Invalid coupon.")
+            coupon_code =None
+            if 'applied_coupon' in  request.session:
+                del request.sessio['applied_coupon']
+                
+    final_amount= cart_total-discount_amount
     
-    order = OrderMain.objects.create(
-        user = user,
-        address = order_address,
-        total_amount= cart_total,
-        discount_amount = discount_amount,
-        final_amount = final_amount,
-        payment_method = payment_method,
-        order_id = str(uuid.uuid4())[:10],
-        order_status = 'Pending' if payment_method == 'Cash on Delivery' else 'Awaiting Payment'
-    )
+    with transaction.atomic():    
+        order = OrderMain.objects.create(
+            user = user,
+            address = order_address,
+            total_amount= cart_total,
+            discount_amount = discount_amount,
+            final_amount = final_amount,
+            payment_method = payment_method,
+            order_id = str(uuid.uuid4())[:10],
+            order_status = 'Pending' if payment_method == 'Cash on Delivery' else 'Awaiting Payment'
+        )
     
     for item in cart_items:
         OrderSub.objects.create(
@@ -83,6 +109,18 @@ def place_order(request):
         item.variant.save()
         cart_items.delete()
     
+    if coupon_code:
+        coupon =Coupon.objects.get(coupon_code=coupon_code)
+        UserCoupon.objects.create(
+            user=user,
+            coupon=coupon,
+            redeemed=True,
+            redeemed_at=timezone.now()        
+        )
+        
+        if 'applied_coupon' in request.session:
+            del request.session['applied_coupon']
+            
     if payment_method == 'Razorpay':
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
         payment_data = {

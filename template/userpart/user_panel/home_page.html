@@ -32,11 +32,19 @@
                             {% endif %}
                         {% endwith %}
                     </a>
-                    <div class="p-6">
-                        <h3 class="text-center text-xl font-bold mb-4 truncate">{{ product.product_name }}</h3>
+                    <div class="p-6 bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
+                        <h3 class="text-center text-xl font-bold mb-4 truncate text-gray-800">{{ product.product_name }}</h3>
                         {% with variant=product.productvariant_set.first %}
                             {% if variant %}
-                                <p class="text-center text-2xl font-bold text-gray-800">₹{{ variant.variant_price|floatformat:2 }}</p>
+                                <div class="flex justify-center items-baseline space-x-2">
+                                    <p class="text-3xl font-bold text-green-600">₹{{ variant.get_discounted_amount|floatformat:2 }}</p>
+                                    <p class="text-xl text-gray-500 line-through">₹{{ variant.variant_price|floatformat:2 }}</p>
+                                </div>
+                                {% with savings=variant.variant_price|add:"-"|add:variant.get_discounted_amount %}
+                                <p class="text-center text-sm text-red-500 mt-2">
+                                    Save ₹{{ savings|floatformat:2 }}
+                                </p>
+                                {% endwith %}
                             {% else %}
                                 <p class="text-center text-2xl font-bold text-gray-800">₹{{ product.price|floatformat:2 }}</p>
                             {% endif %}

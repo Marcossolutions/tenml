@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.contrib.auth import authenticate,login
+from django.contrib.auth import authenticate,login,logout
 from django.shortcuts import redirect, get_object_or_404
 from django.contrib import messages
 from account.forms import loginform
@@ -27,6 +27,12 @@ def admin_login(request):
         form = loginform()
     
     return render(request,'adminpart/admin_login.html', {'form': form})
+
+
+def admin_logout(request):
+    logout(request)
+    return redirect('adminpanel:admin_login')
+
 
 def admin_dashboard(request):
     return render(request, 'adminpart/index-dark.html')

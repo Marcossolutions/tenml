@@ -11,6 +11,8 @@ from django.contrib import messages
 from userpanel.models import UserAddress
 from decimal import Decimal
 from userpanel.forms import UserAddressForm
+from coupon.models import Coupon ,UserCoupon
+from django.utils import timezone
 
 @login_required(login_url='/login/')
 def cart_view(request):
@@ -135,14 +137,29 @@ def checkout(request):
     # If all checks pass, proceed to checkout
     cart_total = sum(item.get_total_price() for item in cart_items)
     
+    # Store cart_total in session
+    request.session['cart_total'] = float(cart_total)
+
+    # Get available coupons
+    available_coupons = Coupon.objects.filter(
+        status=True,
+        expiry_date__gte=timezone.now().date(),
+        minimum_amount__lte=cart_total
+    ).exclude(
+        usercoupon__user=user,
+        usercoupon__redeemed=True
+    )
+    
     context = {
         'cart_items': cart_items,
         'cart_total': cart_total,
         'user_addresses': user_addresses,
+        'available_coupons': available_coupons,
         'cart_item_ids': ','.join(map(str, cart_items.values_list('id', flat=True))),
     }
     
     return render(request, 'userpart/cart/checkout.html', context)
+
 
 @login_required(login_url='/login/')
 def add_address_checkout(request):

@@ -68,3 +68,19 @@ class OrderSub(models.Model):
     def __str__(self):
         return f'{self.quantity} x {self.variant.product.product_name} ({self.variant.size})'
     
+    
+# class ReturnRequest(models.Model):
+#     RETURN_STATUS_CHOICE=[
+#         ('Pending','Pending'),
+#         ('Approved','Approved'),
+#         ('Rejected','Rejected')
+#     ]
+#     order = models.ForeignKey(OrderMain,on_delete=models.CASCADE)
+#     user = models.ForeignKey(User,on_delete=models.CASCADE)
+#     reason = models.TextField()
+#     status = models.CharField(max_length=15,choices=RETURN_STATUS_CHOICE,default='Pending')
+#     created_at = models.DateTimeField(auto_now_add=True)
+#     updated_at = models.DateTimeField(auto_now=True)
+    
+#     def __str__(self):
+#         return f"Return request for Order{self.order.order_id}"

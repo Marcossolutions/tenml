@@ -106,6 +106,7 @@ def order_detail(request,order_id):
     }
     return render (request,'userpart/user_interface/order_details.html',context)
 
+@login_required
 def cancel_order(request,order_id):
     order = get_object_or_404(OrderMain,order_id=order_id,user=request.user)
     
@@ -135,3 +136,12 @@ def cancel_order(request,order_id):
         messages.success(request, f'Order {order.order_id} has been canceled successfully.')
 
     return redirect('userpanel:view_profile')
+
+
+# @login_required
+# def return_request(request,order_id):
+#     order = get_object_or_404(OrderMain, id=order_id, user=request.user)
+    
+#     if order.order_status != 'Delivery':
+#         messages.error(request,'This order is not eligible for return.')
+#         return redirect('userpanel:')

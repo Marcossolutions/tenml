@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils import timezone
+from account.models import User
 
 class Coupon(models.Model):
     coupon_name= models.CharField(max_length=100)
@@ -19,3 +20,11 @@ class Coupon(models.Model):
         return self.status and self.expiry_date>= timezone.now().date()
 
 
+class UserCoupon(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    coupon = models.ForeignKey(Coupon, on_delete=models.CASCADE)
+    redeemed = models.BooleanField(default=False)
+    redeemed_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.user.username} - {self.coupon.coupon_code}"
