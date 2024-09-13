@@ -1,14 +1,17 @@
 from django.shortcuts import render, redirect, get_object_or_404,get_list_or_404
-from .models import UserProfile,UserAddress, Wallet,WalletTransaction
+from .models import UserProfile,UserAddress, Wallet,WalletTransaction,Wishlist
 from django.contrib.auth.decorators import login_required
 from .forms import UserPofileForm,UserAddressForm,EditUserProfileForm
 from django.core.paginator import Paginator
 from django.contrib import messages
-from orders.models import OrderMain,OrderSub
+from orders.models import OrderMain,OrderSub, ReturnRequest
 from django.db import transaction
 from decimal import Decimal
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from product.models import ProductVariant
+from django.http import JsonResponse
+import json
 
 
 
@@ -138,10 +141,63 @@ def cancel_order(request,order_id):
     return redirect('userpanel:view_profile')
 
 
-# @login_required
-# def return_request(request,order_id):
-#     order = get_object_or_404(OrderMain, id=order_id, user=request.user)
+@login_required
+def return_request(request,order_id):
+    order = get_object_or_404(OrderMain, order_id=order_id, user=request.user)
     
-#     if order.order_status != 'Delivery':
-#         messages.error(request,'This order is not eligible for return.')
-#         return redirect('userpanel:')
+    if order.order_status != 'Delivered':
+        messages.error(request,'This order is not eligible for return.')
+        return redirect('userpanel:view_profile')
+    if ReturnRequest.objects.filter(order=order).exists():
+        messages.error(request,'Return request for this order already exits.')
+        return redirect('userpanel:view_profile')
+    
+    if request.method=='POST':
+        reason =request.POST.get("reason")
+        ReturnRequest.objects.create(
+            order=order,
+            user=request.user,
+            reason=reason
+        )
+        order.order_status ='Return Requested'
+        order.save()
+        messages.success(request,"Return request has been submitted successfully.")
+        return redirect('userpanel:order_detail',order_id=order.id)
+
+    return render (request,'userpart/order/return_order.html',{'order':order})
+    
+@login_required
+def wishlist(request):
+    wishlist_items=Wishlist.objects.filter(user=request.user).select_related('variant')
+    context = {'wishlist_items': wishlist_items}
+    return render(request, 'userpart/user_interface/wishlist.html',context)
+
+@login_required
+def toggle_wishlist(request):
+    if request.method == 'POST':
+        variant_id = request.POST.get('variant_id')
+        try:
+            variant = ProductVariant.objects.get(id=variant_id)
+            wishlist_item, created = Wishlist.objects.get_or_create(user=request.user, variant=variant)
+            if not created:
+                wishlist_item.delete()
+                return JsonResponse({'status': 'removed'})
+            else:
+                return JsonResponse({'status': 'added'})
+        except ProductVariant.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Variant not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+    
+@login_required
+def remove_from_wishlist(request):
+    if request.method =='POST':
+        wishlist_id = request.POST.get('wishlist_id')
+        wishlist_item = get_object_or_404(Wishlist,id=wishlist_id,user=request.user)
+        wishlist_item.delete()
+        return redirect ('userpanel:wishlist')
+        
+    else:
+        return redirect ('userpanel:wishlist')
+    

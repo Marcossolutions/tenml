@@ -14,6 +14,11 @@ from category.models import Category
 from django.db.models import Prefetch
 from django.core.exceptions import ObjectDoesNotExist
 from .signals import user_registered
+from django.contrib.auth.views import PasswordResetView,PasswordResetDoneView,PasswordResetConfirmView,PasswordResetCompleteView
+from .forms import CustomPasswordResetForm
+from django.urls import reverse_lazy
+
+
 
 def index(request):
     return render(request,'userpart/user_panel/index.html')
@@ -152,7 +157,32 @@ def signout(request):
     messages.success(request, "You have successfully logged out.")
     return redirect('home')
 
+class CustomPasswordResetView(PasswordResetView):
+    form_class = CustomPasswordResetForm
+    template_name = 'userpart/user_panel/reset_pswd/form_password_reset.html'
+    email_template_name='userpart/user_panel/reset_pswd/password_reset_email.txt'
+    subject_template_name='userpart/user_panel/reset_pswd/password_reset_subject.txt'
+    success_url = reverse_lazy('password_reset_done')
+    
+    def form_valid(self, form):
+        messages.success(self.request,"Your reset email  has been sent. Please check your inbox.")
+        return super().form_valid(form)
+    
+class CustomPasswordResetDoneView(PasswordResetDoneView):
+    template_name = 'userpart/user_panel/reset_pswd/done_password_reset.html' 
 
+class CustomPasswordRestConfirmView(PasswordResetConfirmView):
+    template_name = 'userpart/user_panel/reset_pswd/confirm_password_reset.html'
+    success_url = reverse_lazy('password_reset_complete')
+    
+    def form_valid(self, form):
+        messages.success(self.request,"Your password has been reset successfully.")
+        return super().form_valid(form)
+class CustomPasswordResetCompleteView(PasswordResetCompleteView):
+    template_name = 'userpart/user_panel/reset_pswd/complete_password_reset.html'
+    
+    
+    
 
 
 

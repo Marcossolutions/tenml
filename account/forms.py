@@ -1,7 +1,11 @@
+from collections.abc import Iterator
+from typing import Any
 from django import forms
 from django.core.exceptions import ValidationError
 from django.contrib.auth.password_validation import validate_password
 from .models import User
+from django.contrib.auth.forms import PasswordResetForm
+from django.contrib.auth import get_user_model
 
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
@@ -46,3 +50,15 @@ class OTPForm(forms.Form):
 class loginform(forms.Form):
     email = forms.EmailField(widget=forms.EmailInput(attrs={'class':'form-control','placeholder':'Email'}))
     password = forms.CharField(widget=forms.PasswordInput(attrs={'class':'form-control','placeholder':'Password'}))
+
+User=get_user_model()
+
+class CustomPasswordResetForm(PasswordResetForm):
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={'class': 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring focus:ring-purple-500 focus:ring-opacity-50','placeholder':'Enter your email'}),
+        max_length=254,
+        label="Email"
+    )
+    def get_users(self, email):
+        active_users=User.objects.filter(email__iexact=email,is_active=True)
+        return (u for u in active_users if u.has_usable_password())

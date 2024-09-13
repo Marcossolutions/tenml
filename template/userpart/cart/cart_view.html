@@ -76,10 +76,10 @@
     </div>
     {% else %}
     <div class="text-center">
-        <img src="{% static 'images/empty-cart.jpg' %}" alt="Empty Cart" class="mx-auto mb-4 max-w-xs">
+        <img src="{% static 'userside/assets/imgs/theme/empty_cart.png' %}" alt="Empty Cart" class="mx-auto mb-4 max-w-xs">
         <h2 class="text-2xl font-bold mb-4 text-[#e4e1d8]">Your cart is empty</h2>
         <a href="{% url 'product:shop_page' %}" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700 transition-colors">
-            Start Shopping
+            Explore Shopping
         </a>
     </div>
     {% endif %}

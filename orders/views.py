@@ -10,10 +10,13 @@ import razorpay
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
+from django.http import JsonResponse
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils import timezone
 from django.db import transaction
 from coupon.models import Coupon,UserCoupon
+from orders.models import ReturnRequest
+from django.db.models import Q
 # Create your views here.
 
 
@@ -283,3 +286,88 @@ def change_order_status(request,order_id):
             messages.success(request,'Order status updated successfully.')
             
     return redirect('orders:admin_order_detail',order_id=order.id)
+
+
+
+@staff_member_required
+def admin_return_requests(request):
+    search_query = request.GET.get('search', '')
+    items_per_page = int(request.GET.get('items_per_page', 10))
+    
+    return_requests = ReturnRequest.objects.all().select_related('order').order_by('-created_at')
+    
+    if search_query:
+        return_requests = return_requests.filter(
+            Q(order__order_id__icontains=search_query) | 
+            Q(order__user__username__icontains=search_query)
+        )
+    
+    paginator = Paginator(return_requests, items_per_page)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'page_obj': page_obj,
+        'search_query': search_query,
+        'items_per_page': items_per_page,
+    }
+    return render(request, 'adminpart/return_requests_list.html', context)
+
+@staff_member_required
+def handle_return_request(request,request_id):
+    return_request = get_object_or_404(ReturnRequest,id=request_id)
+    
+    if request.method =='POST':
+        action = request.POST.get("action")
+        response_data = {'status':'','message':''}
+        
+        try:
+            with transaction.atomic():
+                if action == "approve":
+                    return_request.status = "Approved"
+                    return_request.save()
+                    
+                    order = return_request.order
+                    refund_amount=order.final_amount
+                    
+                    order.order_status = 'Returned'
+                    order.is_active = False
+                    order.save()
+                    
+                    if refund_amount>0 and order.payment_status:
+                        wallet, created = Wallet.objects.get_or_create(user= order.user)
+                        wallet.balance += refund_amount
+                        wallet.save()
+                        
+                        WalletTransaction.objects.create(
+                            wallet=wallet,
+                            amount=float(refund_amount),
+                            description=f"Refund for order {order.order_id}",
+                            transaction_type = "CREDIT"
+                        )
+                        messages.success(request,f"Return request approved and ₹{refund_amount} credited to the user\'s wallet.")
+                    else:
+                        messages.success(request,"Return request approved. No payment was made or payment status is not confirmed.")
+                
+                elif action =='reject':
+                    return_request.status ="Rejected"
+                    return_request.save()
+                    
+                    order= return_request.order
+                    order.order_status ="Return Rejected"
+                    order.save()
+                    
+                    messages.success(request,"Return request rejected.")
+                
+                else:
+                    response_data['message'] = "Invalid action."
+                    return JsonResponse(response_data, status=400)
+                
+                response_data['status'] = return_request.status
+                return JsonResponse(response_data)
+        
+        except Exception as e:
+            response_data['message'] = f"An error occurred: {str(e)}"
+            return JsonResponse(response_data, status=500)
+    
+    return JsonResponse({'message': 'Invalid request method'}, status=400)

@@ -1,5 +1,6 @@
 from django.db import models
 from account.models import User
+from product.models import ProductVariant
 
 class UserProfile(models.Model):
     user = models.ForeignKey(User,  on_delete=models.CASCADE)
@@ -53,3 +54,15 @@ class WalletTransaction(models.Model):
         return f"{self.transaction_type} of {self.amount} to {self.wallet.user.username}'s Wallet"    
     class Meta:
         ordering = ['-timestamp']
+        
+        
+class Wishlist(models.Model):
+    user = models.ForeignKey(User,on_delete=models.CASCADE)
+    variant = models.ForeignKey(ProductVariant, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    class Meta:
+        unique_together =('user','variant')
+    
+    def __str__(self):
+        return f"{self.user.username}'s wishlist : {self.variant}"

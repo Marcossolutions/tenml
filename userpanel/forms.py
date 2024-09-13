@@ -1,6 +1,11 @@
+from typing import Any
 from django import forms
+from django.contrib.auth.base_user import AbstractBaseUser
 from .models import UserProfile,UserAddress
 from account.models import User
+from django.contrib.auth.forms import PasswordChangeForm
+from django.contrib.auth import get_user_model
+
 
 
 class UserPofileForm(forms.ModelForm):
@@ -50,4 +55,9 @@ class EditUserProfileForm(forms.ModelForm):
         widgets = {
             'email': forms.EmailInput(attrs = {'readonly':'readonly'}),
         }
-        
+# User = get_user_model
+# class CustomPasswordChangeForm(PasswordChangeForm):
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         for field in self.fields.values():
+#             field.widget.attrs.update({'class': 'w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400'})

@@ -1,0 +1,25 @@
+﻿{% extends 'userpart/base_user.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto mt-8">
+    <h2 class="text-2xl font-semibold mb-4">Return Order #{{ order.order_id }}</h2>
+    <form method="post" class="bg-white shadow-md rounded px-8 pt-6 pb-8 mb-4">
+        {% csrf_token %}
+        <div class="mb-4">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="reason">
+                Reason for Return
+            </label>
+            <textarea id="reason" name="reason" rows="4" class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" required></textarea>
+        </div>
+        <div class="flex items-center justify-between">
+            <button class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline" type="submit">
+                Submit Return Request
+            </button>
+            <a href="{% url 'userpanel:order_detail' order.id %}" class="inline-block align-baseline font-bold text-sm text-blue-500 hover:text-blue-800">
+                Cancel
+            </a>
+        </div>
+    </form>
+</div>
+{% endblock %}

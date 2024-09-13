@@ -1,0 +1,136 @@
+{% extends 'adminpart/base.html' %}
+{% load static %}
+
+{% block content %}
+<section class="content-main">
+    <div class="content-header">
+        <h2 class="content-title">Return Requests</h2>
+    </div>
+    
+    <div class="card mb-4">
+        <header class="card-header">
+            <div class="row gx-3">
+                <div class="col-lg-4 col-md-6 me-auto">
+                    <form method="get" action="">
+                        <input type="text" name="search" value="{{ search_query }}" placeholder="Search by Order ID or Username..." class="form-control">
+                    </form>
+                </div>
+                <div class="col-lg-2 col-md-3 col-6">
+                    <select name="items_per_page" class="form-select" onchange="this.form.submit()">
+                        <option value="10" {% if items_per_page == '10' %}selected{% endif %}>Show 10</option>
+                        <option value="20" {% if items_per_page == '20' %}selected{% endif %}>Show 20</option>
+                        <option value="30" {% if items_per_page == '30' %}selected{% endif %}>Show 30</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-3 col-6">
+                    <button type="submit" class="btn btn-primary">Apply</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th>User</th>
+                            <th>Total Amount</th>
+                            <th>Reason</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th class="text-end">Order Details</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for return_request in page_obj %}
+                        <tr id="return-request-{{ return_request.id }}">
+                            <td>{{ return_request.order.order_id }}</td>
+                            <td>{{ return_request.order.user.username }}</td>
+                            <td>₹{{ return_request.order.final_amount }}</td>
+                            <td>{{ return_request.reason }}</td>
+                            <td>{{ return_request.created_at|date:"F d, Y" }}</td>
+                            <td class="status-cell">
+                                <span class="badge rounded-pill
+                                    {% if return_request.status == 'Approved' %}bg-success
+                                    {% elif return_request.status == 'Rejected' %}bg-danger
+                                    {% else %}bg-warning{% endif %}">
+                                    {{ return_request.status }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'orders:admin_order_detail' return_request.order.id %}" class="btn btn-sm btn-info">Details</a>
+                            </td>
+                            <td class="text-center  action-cell">
+                                {% if return_request.status == 'Pending' %}
+                                    <button onclick="handleReturnRequest({{ return_request.id }}, 'approve')" class="btn btn-sm btn-success">Approve</button>
+                                    <button onclick="handleReturnRequest({{ return_request.id }}, 'reject')" class="btn btn-sm btn-danger">Reject</button>
+                                {% else %}
+                                    <span class="text-gray-300">Processed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="pagination-area mt-15 mb-50">
+        <nav aria-label="Page navigation example">
+            <ul class="pagination justify-content-start">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}&search={{ search_query }}&items_per_page={{ items_per_page }}"><i class="material-icons md-chevron_left"></i></a>
+                </li>
+                {% endif %}
+                {% for num in page_obj.paginator.page_range %}
+                <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                    <a class="page-link" href="?page={{ num }}&search={{ search_query }}&items_per_page={{ items_per_page }}">{{ num }}</a>
+                </li>
+                {% endfor %}
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}&search={{ search_query }}&items_per_page={{ items_per_page }}"><i class="material-icons md-chevron_right"></i></a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+</section>
+<script>
+    function handleReturnRequest(requestId, action) {
+        console.log(requestId)
+        fetch(`{% url 'orders:handle_return_request' 0 %}`.replace('0', requestId), {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: `action=${action}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status) {
+                // Update the status cell
+                const statusCell = document.querySelector(`#return-request-${requestId} .status-cell`);
+                statusCell.innerHTML = `<span class="badge rounded-pill ${data.status === 'Approved' ? 'bg-success' : 'bg-danger'}">${data.status}</span>`;
+                
+                // Update the action cell
+                const actionCell = document.querySelector(`#return-request-${requestId} .action-cell`);
+                actionCell.innerHTML = '<span class="text-muted">Processed</span>';
+    
+                // Show message
+                alert(data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while processing the request. Please try again.');
+        });
+    }
+    </script>
+
+{% endblock %}

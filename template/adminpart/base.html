@@ -34,7 +34,7 @@
     <aside class="navbar-aside" id="offcanvas_aside">
         <div class="aside-top">
             <a href="index.html" class="brand-wrap">
-                <img src="{% static 'adminside/assets/imgs/theme/logo.svg' %}" class="logo" alt="Evara Dashboard">
+                <img src="{% static 'adminside/assets/imgs/theme/ten-ml.png' %}" class="logo" alt="Evara Dashboard">
             </a>
             <div>
                 <button class="btn btn-icon btn-aside-minimize"> <i class="text-muted material-icons md-menu_open"></i> </button>
@@ -42,9 +42,14 @@
         </div>
         <nav>
             <ul class="menu-aside">
-                <li class="menu-item active">
+                <li class="menu-item">
                     <a class="menu-link" href="{% url 'adminpanel:admin_dashboard' %}"> <i class="icon material-icons md-home"></i>
                         <span class="text">Dashboard</span>
+                    </a>
+                </li>
+                <li class="menu-item">
+                    <a class="menu-link" href="{% url 'adminpanel:sales_report' %}"> <i class="icon material-icons md-home"></i>
+                        <span class="text">Sales Report </span>
                     </a>
                 </li>
                 <li class="menu-item">
@@ -79,6 +84,12 @@
                 <li class="menu-item">
                     <a class="menu-link" href="{% url 'coupon:coupon_list' %}"> <i class="icon material-icons md-local_offer"></i>
                         <span class="text">Coupon Management</span> </a>
+                </li>
+                <li class="menu-item">
+                    <a class="menu-link" href="{% url 'orders:admin_return_requests' %}">
+                        <i class="icon material-icons md-undo"></i>
+                        <span class="text">Return Order Management</span>
+                    </a>
                 </li>
                 
              
