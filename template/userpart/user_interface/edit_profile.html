@@ -5,6 +5,17 @@
 <div class="container mx-auto mt-10 max-w-lg">
     <div class="bg-white p-8 rounded-lg shadow-lg">
         <h2 class="text-3xl font-semibold text-gray-800 mb-6">Edit Profile</h2>
+        
+        {% if messages %}
+        <div class="mb-4">
+            {% for message in messages %}
+            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative" role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
         <form method="POST">
             {% csrf_token %}
             <div class="mb-4">
@@ -19,8 +30,43 @@
                 <label for="email" class="block text-gray-700 text-sm font-bold mb-2">Email</label>
                 <input type="email" id="email" name="email" value="{{ form.email.value }}" class="w-full px-4 py-2 border rounded-lg bg-gray-100 focus:outline-none" readonly>
             </div>
-            <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition">Save Changes</button>
+            <button type="submit" class="mb-5 w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition">Save Changes</button>
         </form>
+        
+        <button id="changePasswordBtn" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition">Change Password</button>
     </div>
 </div>
+
+<!-- Password Change Modal -->
+<div id="passwordModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full" style="display: none;">
+    <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3 text-center">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">Change Password</h3>
+            <form method="POST" class="mt-2 px-7 py-3">
+                {% csrf_token %}
+                {% for field in password_form %}
+                <div class="mb-4">
+                    <label for="{{ field.id_for_label }}" class="block text-gray-700 text-sm font-bold mb-2">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}
+                    <p class="text-red-500 text-xs italic">{{ field.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                <button type="submit" name="change_password" class="w-full bg-green-500 text-white py-2 rounded-lg hover:bg-green-600 transition">Change Password</button>
+            </form>
+            <button id="closeModal" class="mt-3 bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 transition">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('changePasswordBtn').addEventListener('click', function() {
+        document.getElementById('passwordModal').style.display = 'block';
+    });
+
+    document.getElementById('closeModal').addEventListener('click', function() {
+        document.getElementById('passwordModal').style.display = 'none';
+    });
+</script>
 {% endblock %}

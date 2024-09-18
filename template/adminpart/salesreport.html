@@ -156,46 +156,70 @@
             const table = document.getElementById('sales-table');
             
             // Add title
-            doc.setFontSize(16);
+            doc.setFontSize(24);
             doc.setFont("helvetica", "bold");
-            doc.text("ten-ml Sales Report", 14, 20);
+            doc.setTextColor(44, 62, 80); // Dark blue
+            const title = "ten-ml Sales Report";
+            const titleWidth = doc.getStringUnitWidth(title) * doc.internal.getFontSize() / doc.internal.scaleFactor;
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const titleX = (pageWidth - titleWidth) / 2;
+            doc.text(title, titleX, 20);
+            doc.setLineWidth(0.5);
+            doc.line(titleX, 22, titleX + titleWidth, 22);
+        
             
             // Add summary
             doc.setFontSize(12);
             doc.setFont("helvetica", "normal");
-            doc.setTextColor(50); // Dark gray for subtle emphasis
-            doc.text(`Number of Orders: {{ total_orders }}`, 14, 30);
-            doc.text(`Total Order Amount: {{ total_order_amount }}`, 14, 36);
-            doc.text(`Total Discount: {{ total_discount }}`, 14, 42);
+            doc.setTextColor(52, 73, 94); // Slate gray
+            doc.text(`Number of Orders: {{ total_orders }}`, 14, 35);
+            doc.text(`Total Order Amount: {{ total_order_amount }}`, 14, 42);
+            doc.text(`Total Discount: {{ total_discount }}`, 14, 49);
             
             // Add the table
             doc.autoTable({
                 html: table,
-                startY: 50,
+                startY: 60,
                 styles: {
-                    fontSize: 10,
-                    halign: 'center',
-                    valign: 'middle',
-                    fillColor: [255, 255, 255],
-                    textColor: [0, 0, 0],
+                    fontSize: 9,
+                    cellPadding: 3,
+                    lineColor: [189, 195, 199], // Light gray for cell borders
+                    lineWidth: 0.1,
                 },
                 headStyles: {
-                    fillColor: [0, 0, 0], // Black for header background
+                    fillColor: [41, 128, 185], // Bright blue for header background
                     textColor: [255, 255, 255], // White text
                     fontStyle: 'bold',
                     fontSize: 10,
+                    halign: 'center',
+                    valign: 'middle',
+                    cellPadding: 4,
                 },
                 bodyStyles: {
-                    fillColor: [255, 255, 255], // White for row background
-                    textColor: [0, 0, 0],
-                    fontSize: 10,
+                    textColor: [44, 62, 80], // Dark blue text
+                    fontSize: 9,
+                    valign: 'middle',
                 },
                 alternateRowStyles: {
-                    fillColor: [240, 240, 240], // Light gray for alternate rows
+                    fillColor: [236, 240, 241], // Very light gray for alternate rows
                 },
-                margin: { top: 50 },
-                tableLineColor: [0, 0, 0],
-                tableLineWidth: 0.75
+                columnStyles: {
+                    0: { cellWidth: 25 }, // Date column
+                    1: { cellWidth: 25 }, // Order ID column
+                    2: { cellWidth: 30 }, // Customer column
+                    3: { cellWidth: 25 }, // Total column
+                    4: { cellWidth: 25 }, // Discount column
+                    5: { cellWidth: 25 }, // Order Total column
+                    6: { cellWidth: 30 }, // Payment Method column
+                },
+                margin: { top: 60, left: 10, right: 10 },
+                tableWidth: 'auto',
+                
+                didDrawPage: function (data) {
+                    // Add page number at the bottom
+                    doc.setFontSize(8);
+                    doc.text('Page ' + doc.internal.getNumberOfPages(), data.settings.margin.left, doc.internal.pageSize.height - 10);
+                },
             });
             
             // Save the PDF

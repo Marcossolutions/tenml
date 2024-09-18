@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404,get_list_or_404
 from .models import UserProfile,UserAddress, Wallet,WalletTransaction,Wishlist
 from django.contrib.auth.decorators import login_required
-from .forms import UserPofileForm,UserAddressForm,EditUserProfileForm
+from .forms import UserPofileForm,UserAddressForm,EditUserProfileForm,CustomPasswordChangeForm
 from django.core.paginator import Paginator
 from django.contrib import messages
 from orders.models import OrderMain,OrderSub, ReturnRequest
@@ -9,6 +9,7 @@ from django.db import transaction
 from decimal import Decimal
 from django.utils import timezone
 from django.views.decorators.http import require_POST
+from django.contrib.auth import update_session_auth_hash
 from product.models import ProductVariant
 from django.http import JsonResponse
 import json
@@ -54,13 +55,26 @@ def view_profile(request):
 def edit_profile (request):
     
     if request.method == 'POST':
-        form = EditUserProfileForm(request.POST, instance=request.user)
-        if form.is_valid():
-            form.save()
-            return redirect ('userpanel:view_profile')
-    else:
-        form = EditUserProfileForm(instance=request.user)
-    return render(request,'userpart/user_interface/edit_profile.html',{'form':form})
+        if 'update_profile' in request.POST:
+            form = EditUserProfileForm(request.POST, instance=request.user)
+            if form.is_valid():
+                form.save()
+                messages.success(request,"Your profile was successfully updated.")
+                return redirect('userpanel:view_profile')
+            
+        elif 'change_password' in request.POST:
+            password_form = CustomPasswordChangeForm(request.user,request.POST)
+            if password_form.is_valid():
+                user=password_form.save()
+                update_session_auth_hash(request,user)
+                messages.success(request,"Youer password was successfully updated!")
+                return redirect('userpanel:view_profile')
+        
+    
+    form = EditUserProfileForm(instance=request.user)
+    password_form = CustomPasswordChangeForm(request.user)
+        
+    return render(request,'userpart/user_interface/edit_profile.html',{'form':form, 'password_form':password_form})
 
 @login_required(login_url='/login/')
 def add_address(request):

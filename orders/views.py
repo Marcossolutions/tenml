@@ -190,10 +190,75 @@ def razorpay_callback(request):
         
         print(f"An error occurred: {str(e)}")
         return redirect('orders:payment_failed')
+
+@login_required
+def process_payment(request, order_id):
+    order = get_object_or_404(OrderMain, order_id=order_id, user=request.user, order_status='Awaiting Payment')
+    client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+    payment_data = {
+        'amount':int (order.final_amount *100),
+        'currency': 'INR',
+        'receipt': order.order_id,
+        'payment_capture':'1'
+    }
+    razorpay_order = client.order.create(data=payment_data)
+    
+    order.payment_id = razorpay_order['id']
+    order.save()
+    
+    return redirect('orders:razorpay_payment', order_id=order.order_id)
+
+
+
+
+
+
+
+
+
+
+
     
 @login_required 
 def payment_failed(request):
     return render(request,'userpart/order/payment_failed.html')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -306,17 +306,22 @@ def shop_page(request):
 
 
 def search_product(request):
-    search_query= request.GET.get('q'),
+    search_query = request.GET.get('q', '')
     products = Product.objects.filter(is_active=True)
     
     if search_query:
         print(f'Search query:{search_query}')
-        products = products.filter(Q(product_name__iexact=search_query) | 
-                                   Q(product_decription__iexact=search_query))
+        products = products.filter(Q(product_name__icontains=search_query) | 
+                                   Q(product_decription__icontains=search_query) |
+                                   Q(product_category__category_name__icontains=search_query)  
+                                    ).distinct() 
         print(f'Filtered product:{products.count()}')
+        
+    categories = Category.objects.filter(product__in=products).distinct()
     context = {
         'products': products,
-        'search_query' : search_query
+        'search_query' : search_query,
+        'categories':categories
     }
     return render(request, 'userpart/user_panel/shop_page.html', context)
 
