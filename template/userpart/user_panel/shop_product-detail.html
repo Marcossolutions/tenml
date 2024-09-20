@@ -119,16 +119,21 @@
                     Price: ₹
                     {% if product.productvariant_set.first.discount_percentage > 0 %}
                         <span class="line-through">{{ product.productvariant_set.first.variant_price|floatformat:2 }}</span>
+                       
                     {% else %}
-                        ₹{{ product.productvariant_set.first.variant_price|floatformat:2 }}
+                        {{ product.productvariant_set.first.variant_price|floatformat:2 }}
                     {% endif %}
                 </p>
-                <p id="variant-discount" class="text-md font-medium">
-                    Discount: <span id="discount">{{ product.productvariant_set.first.discount_percentage|floatformat:0 }}</span>%
-                </p>
-                <p id="variant-discounted-price" class="text-xl font-semibold">
-                    Discounted Price: ₹<span id="discounted-price">{{ product.productvariant_set.first.get_discounted_amount|floatformat:2 }}</span>
-                </p>
+        
+                {% if product.productvariant_set.first.discount_percentage > 0 %}
+                    <p id="variant-discount" class="text-md font-medium">
+                        Discount: <span id="discount">{{ product.productvariant_set.first.discount_percentage|floatformat:0 }}</span>%
+                    </p>
+                    <p id="variant-discounted-price" class="text-xl font-semibold">
+                        Discounted Price: ₹<span id="discounted-price">{{ product.productvariant_set.first.get_discounted_amount|floatformat:2 }}</span>
+                    </p>
+                {% endif %}
+        
                 <p id="variant-stock" class="text-md font-medium">
                     Stock: <span id="stock">{{ product.productvariant_set.first.variant_stock }}</span> units
                 </p>
@@ -154,6 +159,8 @@
                     {% endwith %}
                 </div>
             </div>
+        
+        
             
             <div class="flex items-center mb-4">
                 <form id="add-to-cart-form" method="POST" action="{% url 'cart:add_to_cart' %}">

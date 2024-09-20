@@ -17,9 +17,9 @@
                     <span>Shop</span>
                 </div>
                 <div>
-                    <form method="GET" action="{% url 'product:search_product' %}" class="flex items-center space-x-2">
+                    <form id="search-form" method="GET" action="{% url 'product:shop_page' %}" class="flex items-center space-x-2">
                         <input type="text" name="q" class="bg-gray-700 text-white p-2 rounded-l-md outline-none"
-                            placeholder="Search products" value="{{ request.GET.q }}">
+                            placeholder="Search products" value="{{ search_query }}">
                         <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-r-md">Search</button>
                     </form>
                 </div>
@@ -87,56 +87,11 @@
 
                     <!-- Product List -->
                     <div class="w-full lg:w-3/4 px-4">
+                        <div id="product-count" class="mb-4 text-gray-400">
+                            {{ products.count }} products found
+                        </div>
                         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="product-list">
-                            {% for product in products %}
-                                <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
-                                    <div class="product-img relative">
-                                        <a href="{% url 'product:product_detail_page' product.id %}">
-                                            {% if product.thumbnail %}
-                                                <img class="w-full h-64 object-cover" src="{{ product.thumbnail.url }}" alt="{{ product.product_name }}">
-                                            {% else %}
-                                                <img class="w-full h-64 object-cover" src="{% static 'images/No_Image-1024.webp' %}" alt="{{ product.product_name }}">
-                                            {% endif %}
-                                        </a>
-                                        
-                                        <button class="wishlist-button absolute top-2 right-2 text-2xl" 
-                                        data-variant-id=""
-                                        data-url="{% url 'userpanel:toggle_wishlist' %}">
-                                            {% if product.variant in user.wishlist_set.all %}
-                                                
-                                            {% else %}
-                                                
-                                            {% endif %}
-                                        </button>
-                                        
-                                    </div>
-                                    <div class="p-4 text-center ">
-                                        <h5 class="text-lg font-semibold">
-                                            <a href="{% url 'product:product_detail_page' product.id %}" class="hover:underline">{{ product.product_name }}</a>
-                                        </h5>
-                                        <p class="text-gray-400">{{ product.product_category.category_name }}</p>
-                                        <div class="product-price mt-2">
-                                            {% with variant=product.productvariant_set.first %}
-                                                {% if variant %}
-                                                    {% if variant.discount_percentage > 0 %}
-                                                        <span class="text-lg font-semibold text-red-500">₹ {{ variant.get_discounted_amount|floatformat:2 }}</span>
-                                                        <span class="line-through text-gray-500 ml-2">₹ {{ variant.variant_price|floatformat:2 }}</span>
-                                                    {% else %}
-                                                        <span class="text-lg font-semibold">₹ {{ variant.variant_price|floatformat:2 }}</span>
-                                                    {% endif %}
-                                                {% else %}
-                                                    <span class="text-lg font-semibold">₹ {{ product.price|floatformat:2 }}</span>
-                                                {% endif %}
-                                            {% endwith %}
-                                            
-                                        </div>
-                                    </div>
-                                </div>
-                            {% empty %}
-                                <div class="col-span-1 sm:col-span-2 lg:col-span-4">
-                                    <p class="text-center">No Products Found Yet</p>
-                                </div>
-                            {% endfor %}
+                            {% include 'userpart/user_panel/product_list_partial.html' with products=products %}
                         </div>
                     </div>
                 </div>
@@ -148,7 +103,41 @@
 </body>
 
 </html>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+$(document).ready(function() {
+    function updateProducts() {
+        var formData = $('#filter-form').serialize() + '&' + $('#search-form').serialize();
+        
+        $.ajax({
+            url: '{% url "product:shop_page" %}',
+            data: formData,
+            dataType: 'json',
+            success: function(data) {
+                $('#product-list').html(data.product_list_html);
+                $('#product-count').text(data.product_count + ' products found');
+                
+                // Update URL for shareable links
+                var newUrl = window.location.pathname + '?' + formData;
+                history.pushState(null, '', newUrl);
+            }
+        });
+    }
+
+    // Trigger update on form changes
+    $('#filter-form input, #filter-form select').on('change', updateProducts);
+    
+    // Prevent form submission and trigger AJAX update instead
+    $('#filter-form, #search-form').on('submit', function(e) {
+        e.preventDefault();
+        updateProducts();
+    });
+});
+</script>
+
 {% endblock %}
+
 <script>
     const addToWishlistBtn = document.getElementById('add-to-wishlist-btn');
 

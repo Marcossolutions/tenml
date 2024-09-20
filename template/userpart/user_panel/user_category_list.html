@@ -1,0 +1,35 @@
+{% extends 'userpart/base_user.html' %}
+
+{% load static %}
+
+{% block content %}
+
+
+<section class="w-full py-16">
+    <div class="max-w-6xl mx-auto px-4">
+        <h2 class="text-white text-4xl font-bold text-center mb-12">All Categories</h2>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {% for category in categories %}
+            <div class="flex flex-col items-center">
+                <div class="h-60 w-60 rounded-full bg-zinc-800 overflow-hidden cursor-pointer transition-transform duration-300 hover:scale-105">
+                    <img class="h-full w-full object-cover" src="{{ category.category_image.url }}" alt="{{ category.category_name }}">
+                </div>
+                <p class="text-2xl font-semibold text-center text-white mt-4">{{ category.category_name }}</p>
+            </div>
+            {% endfor %}
+        </div>
+        {% if is_paginated %}
+        <div class="flex justify-center mt-8">
+            <nav class="inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">Previous</a>
+                {% endif %}
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">Next</a>
+                {% endif %}
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

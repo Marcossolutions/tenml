@@ -10,7 +10,9 @@ from cart.models import CartItem,Cart
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from .forms import Productform
-
+from django.db.models import Prefetch, Min, Max
+from decimal import Decimal
+from django.template.loader import render_to_string
 
 
 def product_list(request):
@@ -248,8 +250,7 @@ def check_variant_in_cart(request):
 #     else:
 #         return JsonResponse({'in_cart': False})
 
-from django.db.models import Prefetch, Min, Max
-from decimal import Decimal
+
 
 def shop_page(request):
     categories = Category.objects.all()
@@ -257,16 +258,20 @@ def shop_page(request):
         Prefetch('productvariant_set', queryset=ProductVariant.objects.filter(variant_status=True))
     )
 
-    search_query = request.GET.get('search_query', '')
-    selected_categories = request.GET.getlist('category')
-    min_price = request.GET.get('min_price')
-    max_price = request.GET.get('max_price')
-
+    search_query = request.GET.get('q', '')
     if search_query:
-        products = products.filter(Q(product_name__icontains=search_query) | Q(product_decription__icontains=search_query))
-
+        products = products.filter(
+            Q(product_name__icontains=search_query)|
+            Q(product_category__category_name__icontains=search_query)
+        ).distinct()
+    
+    
+    selected_categories = request.GET.getlist('category')
     if selected_categories:
         products = products.filter(product_category__id__in=selected_categories)
+        
+    min_price = request.GET.get('min_price')
+    max_price = request.GET.get('max_price')
 
     if min_price:
         min_price = Decimal(min_price)
@@ -301,6 +306,15 @@ def shop_page(request):
         'max_price': max_price,
         'search_query': search_query,
     }
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        product_list_html = render_to_string(
+            'userpart/user_panel/product_list_partial.html',
+            {'products': products}
+        )
+        return JsonResponse({
+            'product_list_html': product_list_html,
+            'product_count': products.count(),
+        })
 
     return render(request, 'userpart/user_panel/shop_page.html', context)
 
@@ -359,6 +373,80 @@ def submit_review(request, product_id):
 
 
 
+
+# def shop_page(request):
+#     categories = Category.objects.all()
+#     products = Product.objects.filter(is_active=True).prefetch_related(
+#         Prefetch('productvariant_set', queryset=ProductVariant.objects.filter(variant_status=True))
+#     )
+
+#     search_query = request.GET.get('search_query', '')
+#     selected_categories = request.GET.getlist('category')
+#     min_price = request.GET.get('min_price')
+#     max_price = request.GET.get('max_price')
+
+#     if search_query:
+#         products = products.filter(Q(product_name__icontains=search_query) | Q(product_decription__icontains=search_query))
+
+#     if selected_categories:
+#         products = products.filter(product_category__id__in=selected_categories)
+
+#     if min_price:
+#         min_price = Decimal(min_price)
+#         products = products.annotate(min_variant_price=Min('productvariant__variant_price')).filter(
+#             Q(min_variant_price__gte=min_price) | Q(price__gte=min_price)
+#         )
+
+#     if max_price:
+#         max_price = Decimal(max_price)
+#         products = products.annotate(max_variant_price=Max('productvariant__variant_price')).filter(
+#             Q(max_variant_price__lte=max_price) | Q(price__lte=max_price)
+#         )
+
+#     sort_by = request.GET.get('sort', 'featured')
+#     if sort_by == 'price_low_high':
+#         products = products.annotate(min_price=Min('productvariant__variant_price')).order_by('min_price', 'price')
+#     elif sort_by == 'price_high_low':
+#         products = products.annotate(max_price=Max('productvariant__variant_price')).order_by('-max_price', '-price')
+#     elif sort_by == 'new_arrivals':
+#         products = products.order_by('-created_at')
+#     elif sort_by == 'name_az':
+#         products = products.order_by('product_name')
+#     elif sort_by == 'name_za':
+#         products = products.order_by('-product_name')
+
+#     context = {
+#         'categories': categories,
+#         'products': products,
+#         'current_sort': sort_by,
+#         'selected_categories': selected_categories,
+#         'min_price': min_price,
+#         'max_price': max_price,
+#         'search_query': search_query,
+#     }
+
+#     return render(request, 'userpart/user_panel/shop_page.html', context)
+
+
+# def search_product(request):
+#     search_query = request.GET.get('q', '')
+#     products = Product.objects.filter(is_active=True)
+    
+#     if search_query:
+#         print(f'Search query:{search_query}')
+#         products = products.filter(Q(product_name__icontains=search_query) | 
+#                                    Q(product_decription__icontains=search_query) |
+#                                    Q(product_category__category_name__icontains=search_query)  
+#                                     ).distinct() 
+#         print(f'Filtered product:{products.count()}')
+        
+#     categories = Category.objects.filter(product__in=products).distinct()
+#     context = {
+#         'products': products,
+#         'search_query' : search_query,
+#         'categories':categories
+#     }
+#     return render(request, 'userpart/user_panel/shop_page.html', context)
 
 
 

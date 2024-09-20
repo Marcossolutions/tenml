@@ -1,0 +1,56 @@
+
+{% load static %}
+
+{% for product in products %}
+    <div class="bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300">
+        <div class="product-img relative">
+            <a href="{% url 'product:product_detail_page' product.id %}">
+                {% if product.thumbnail %}
+                    <img class="w-full h-64 object-cover" src="{{ product.thumbnail.url }}" alt="{{ product.product_name }}">
+                {% else %}
+                    <img class="w-full h-64 object-cover" src="{% static 'images/No_Image-1024.webp' %}" alt="{{ product.product_name }}">
+                {% endif %}
+            </a>
+            
+            <button class="wishlist-button absolute top-2 right-2 text-2xl" 
+            data-variant-id=""
+            data-url="{% url 'userpanel:toggle_wishlist' %}">
+                {% if product.variant in user.wishlist_set.all %}
+                    
+                {% else %}
+                    
+                {% endif %}
+            </button>
+            
+        </div>
+        <div class="p-4 text-center ">
+            <h5 class="text-lg font-semibold">
+                <a href="{% url 'product:product_detail_page' product.id %}" class="hover:underline">{{ product.product_name }}</a>
+            </h5>
+            <p class="text-gray-400">{{ product.product_category.category_name }}</p>
+            <div class="product-price mt-2">
+                {% with variant=product.productvariant_set.first %}
+                    {% if variant %}
+                        {% if variant.discount_percentage > 0 %}
+                            <span class="text-lg font-semibold text-red-500">₹ {{ variant.get_discounted_amount|floatformat:2 }}</span>
+                            <span class="line-through text-gray-500 ml-2">₹ {{ variant.variant_price|floatformat:2 }}</span>
+                        {% else %}
+                            <span class="text-lg font-semibold">₹ {{ variant.variant_price|floatformat:2 }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-lg font-semibold">₹ {{ product.price|floatformat:2 }}</span>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+{% empty %}
+    <div class="col-span-1 sm:col-span-2 lg:col-span-4">
+        <p class="text-center">No Products Found Yet</p>
+    </div>
+{% endfor %}
+
+
+
+
+

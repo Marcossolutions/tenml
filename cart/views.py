@@ -115,7 +115,7 @@ def checkout(request):
     user_addresses = UserAddress.objects.filter(user=user)
     
     if not cart_item_ids:
-        messages.error(request, "No items selected. Please select items before proceeding to checkout.")
+        messages.error(request, "Cash on Delivery is not available for orders above Rs 1000. Please choose a different payment method.")
         return redirect('cart:cart_view')
     
     cart_item_ids = cart_item_ids.split(',')

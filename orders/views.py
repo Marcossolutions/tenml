@@ -23,97 +23,99 @@ from django.db.models import Q
 
 @login_required
 def place_order(request):
-    if request.method !='POST':
+    if request.method != 'POST':
         return redirect('cart:checkout')
     
-    
-    user  = request.user
-    cart_item_ids = request.POST.get('cart_item_ids','').split(',')
-    print("cart ids:",cart_item_ids)
+    user = request.user
+    cart_item_ids = request.POST.get('cart_item_ids', '').split(',')
     address_id = request.POST.get('address_id')
     payment_method = request.POST.get('payment_method')
     
     if not cart_item_ids or not address_id or not payment_method:
-        messages.error(request,"Invalid order data. Please try again.")
+        messages.error(request, "Invalid order data. Please try again.")
         return redirect('cart:checkout')
     
-    try :
-        user_address = UserAddress.objects.get(id=address_id,user = user)
+    try:
+        user_address = UserAddress.objects.get(id=address_id, user=user)
     except UserAddress.DoesNotExist:
-        messages.error (request,"Selected address is invalid.")
+        messages.error(request, "Selected address is invalid.")
         return redirect('cart:checkout')
     
     order_address = OrderAddress.objects.create(
-        user = user,
-        name = user_address.name,
-        house_name = user_address.house_name,
-        street_name = user_address.street_name,
-        district = user_address.district,
-        state = user_address.state,
-        country = user_address.country,
-        pin_number = user_address.pin_number
+        user=user,
+        name=user_address.name,
+        house_name=user_address.house_name,
+        street_name=user_address.street_name,
+        district=user_address.district,
+        state=user_address.state,
+        country=user_address.country,
+        pin_number=user_address.pin_number
     )
     
-    cart_items = CartItem.objects.filter(id__in =cart_item_ids,cart__user=user)
+    cart_items = CartItem.objects.filter(id__in=cart_item_ids, cart__user=user)
     
     if not cart_items.exists():
-        messages.error(request,"No valid items found in cart. Please try again.")
+        messages.error(request, "No valid items found in cart. Please try again.")
         return redirect('cart:checkout')
     
-    cart_total = sum(item.get_total_price() for item in cart_items )
+    cart_total = sum(item.get_total_price() for item in cart_items)
     applied_coupon = request.session.get('applied_coupon')
     discount_amount = Decimal('0.00')
     coupon_code = None
     
     if applied_coupon:
-        coupon_code =applied_coupon['coupon_code']
+        coupon_code = applied_coupon['coupon_code']
         try:
-            coupon =Coupon.objects.get(coupon_code=coupon_code,status=True)
+            coupon = Coupon.objects.get(coupon_code=coupon_code, status=True)
             
-            if not UserCoupon.objects.filter(user=user,coupon=coupon,redeemed=True).exists():
-                if coupon.is_valid() and cart_total >=coupon.minimum_amount:
+            if not UserCoupon.objects.filter(user=user, coupon=coupon, redeemed=True).exists():
+                if coupon.is_valid() and cart_total >= coupon.minimum_amount:
                     discount_amount = Decimal(str(applied_coupon['discount_amount']))
-                    if coupon.maximum_amount >0:
-                        discount_amount = min(discount_amount,Decimal(str(coupon.maximum_amount)))
+                    if coupon.maximum_amount > 0:
+                        discount_amount = min(discount_amount, Decimal(str(coupon.maximum_amount)))
             else:
-                messages.warning(request,"This coupon has already been used.")
+                messages.warning(request, "This coupon has already been used.")
                 coupon_code = None
                 if 'applied_coupon' in request.session:
                     del request.session['applied_coupon']
         except Coupon.DoesNotExist:
-            messages.error(request,"Invalid coupon.")
-            coupon_code =None
-            if 'applied_coupon' in  request.session:
-                del request.sessio['applied_coupon']
+            messages.error(request, "Invalid coupon.")
+            coupon_code = None
+            if 'applied_coupon' in request.session:
+                del request.session['applied_coupon']
                 
-    final_amount= cart_total-discount_amount
+    final_amount = cart_total - discount_amount
+    
+    # New condition: Check if the order is above Rs 1000 and payment method is Cash on Delivery
+    if final_amount > Decimal('1000') and payment_method == 'Cash on Delivery':
+        messages.error(request, "Cash on Delivery is not available for orders above Rs 1000. Please choose a different payment method.")
+        return redirect('cart:checkout')
     
     with transaction.atomic():    
         order = OrderMain.objects.create(
-            user = user,
-            address = order_address,
-            total_amount= cart_total,
-            discount_amount = discount_amount,
-            final_amount = final_amount,
-            payment_method = payment_method,
-            order_id = str(uuid.uuid4())[:10],
-            order_status = 'Pending' if payment_method == 'Cash on Delivery' else 'Awaiting Payment'
+            user=user,
+            address=order_address,
+            total_amount=cart_total,
+            discount_amount=discount_amount,
+            final_amount=final_amount,
+            payment_method=payment_method,
+            order_id=str(uuid.uuid4())[:10],
+            order_status='Pending' if payment_method == 'Cash on Delivery' else 'Awaiting Payment'
         )
     
     for item in cart_items:
         OrderSub.objects.create(
-            main_order = order,
-            variant = item.variant,
-            quantity = item.quantity,
-            price = item.variant.get_discounted_amount()
-            
+            main_order=order,
+            variant=item.variant,
+            quantity=item.quantity,
+            price=item.variant.get_discounted_amount()
         )
         item.variant.variant_stock -= item.quantity
         item.variant.save()
         cart_items.delete()
     
     if coupon_code:
-        coupon =Coupon.objects.get(coupon_code=coupon_code)
+        coupon = Coupon.objects.get(coupon_code=coupon_code)
         UserCoupon.objects.create(
             user=user,
             coupon=coupon,
@@ -127,19 +129,19 @@ def place_order(request):
     if payment_method == 'Razorpay':
         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
         payment_data = {
-            'amount':int(final_amount*100),
-            'currency':'INR',
-            'receipt':order.order_id,
-            'payment_capture':'1'
+            'amount': int(final_amount * 100),
+            'currency': 'INR',
+            'receipt': order.order_id,
+            'payment_capture': '1'
         }
         razorpay_order = client.order.create(data=payment_data)
         order.payment_id = razorpay_order['id']
         order.save()
         
-        return redirect('orders:razorpay_payment',order_id = order.order_id)
+        return redirect('orders:razorpay_payment', order_id=order.order_id)
     
-    messages.success(request,"Order placed successfully!")
-    return redirect('orders:order_confirmation',order_id =order.order_id)
+    messages.success(request, "Order placed successfully!")
+    return redirect('orders:order_confirmation', order_id=order.order_id)
 
 @login_required
 def order_confirmation(request,order_id):
@@ -436,3 +438,128 @@ def handle_return_request(request,request_id):
             return JsonResponse(response_data, status=500)
     
     return JsonResponse({'message': 'Invalid request method'}, status=400)
+
+
+
+
+# @login_required
+# def place_order(request):
+#     if request.method != 'POST':
+#         return redirect('cart:checkout')
+    
+#     user = request.user
+#     cart_item_ids = request.POST.get('cart_item_ids', '').split(',')
+#     address_id = request.POST.get('address_id')
+#     payment_method = request.POST.get('payment_method')
+    
+#     if not cart_item_ids or not address_id or not payment_method:
+#         messages.error(request, "Invalid order data. Please try again.")
+#         return redirect('cart:checkout')
+    
+#     try:
+#         user_address = UserAddress.objects.get(id=address_id, user=user)
+#     except UserAddress.DoesNotExist:
+#         messages.error(request, "Selected address is invalid.")
+#         return redirect('cart:checkout')
+    
+#     order_address = OrderAddress.objects.create(
+#         user=user,
+#         name=user_address.name,
+#         house_name=user_address.house_name,
+#         street_name=user_address.street_name,
+#         district=user_address.district,
+#         state=user_address.state,
+#         country=user_address.country,
+#         pin_number=user_address.pin_number
+#     )
+    
+#     cart_items = CartItem.objects.filter(id__in=cart_item_ids, cart__user=user)
+    
+#     if not cart_items.exists():
+#         messages.error(request, "No valid items found in cart. Please try again.")
+#         return redirect('cart:checkout')
+    
+#     cart_total = sum(item.get_total_price() for item in cart_items)
+#     applied_coupon = request.session.get('applied_coupon')
+#     discount_amount = Decimal('0.00')
+#     coupon_code = None
+    
+#     if applied_coupon:
+#         coupon_code = applied_coupon['coupon_code']
+#         try:
+#             coupon = Coupon.objects.get(coupon_code=coupon_code, status=True)
+            
+#             if not UserCoupon.objects.filter(user=user, coupon=coupon, redeemed=True).exists():
+#                 if coupon.is_valid() and cart_total >= coupon.minimum_amount:
+#                     discount_amount = Decimal(str(applied_coupon['discount_amount']))
+#                     if coupon.maximum_amount > 0:
+#                         discount_amount = min(discount_amount, Decimal(str(coupon.maximum_amount)))
+#             else:
+#                 messages.warning(request, "This coupon has already been used.")
+#                 coupon_code = None
+#                 if 'applied_coupon' in request.session:
+#                     del request.session['applied_coupon']
+#         except Coupon.DoesNotExist:
+#             messages.error(request, "Invalid coupon.")
+#             coupon_code = None
+#             if 'applied_coupon' in request.session:
+#                 del request.session['applied_coupon']
+                
+#     final_amount = cart_total - discount_amount
+    
+#     # New condition: Check if the order is above Rs 1000 and payment method is Cash on Delivery
+#     if final_amount > Decimal('1000') and payment_method == 'Cash on Delivery':
+#         messages.error(request, "Cash on Delivery is not available for orders above Rs 1000. Please choose a different payment method.")
+#         return redirect('cart:checkout')
+    
+#     with transaction.atomic():    
+#         order = OrderMain.objects.create(
+#             user=user,
+#             address=order_address,
+#             total_amount=cart_total,
+#             discount_amount=discount_amount,
+#             final_amount=final_amount,
+#             payment_method=payment_method,
+#             order_id=str(uuid.uuid4())[:10],
+#             order_status='Pending' if payment_method == 'Cash on Delivery' else 'Awaiting Payment'
+#         )
+    
+#     for item in cart_items:
+#         OrderSub.objects.create(
+#             main_order=order,
+#             variant=item.variant,
+#             quantity=item.quantity,
+#             price=item.variant.get_discounted_amount()
+#         )
+#         item.variant.variant_stock -= item.quantity
+#         item.variant.save()
+#         cart_items.delete()
+    
+#     if coupon_code:
+#         coupon = Coupon.objects.get(coupon_code=coupon_code)
+#         UserCoupon.objects.create(
+#             user=user,
+#             coupon=coupon,
+#             redeemed=True,
+#             redeemed_at=timezone.now()        
+#         )
+        
+#         if 'applied_coupon' in request.session:
+#             del request.session['applied_coupon']
+            
+#     if payment_method == 'Razorpay':
+#         client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+#         payment_data = {
+#             'amount': int(final_amount * 100),
+#             'currency': 'INR',
+#             'receipt': order.order_id,
+#             'payment_capture': '1'
+#         }
+#         razorpay_order = client.order.create(data=payment_data)
+#         order.payment_id = razorpay_order['id']
+#         order.save()
+        
+#         return redirect('orders:razorpay_payment', order_id=order.order_id)
+    
+#     messages.success(request, "Order placed successfully!")
+#     return redirect('orders:order_confirmation', order_id=order.order_id)

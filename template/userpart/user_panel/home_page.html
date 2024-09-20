@@ -42,7 +42,7 @@
                                 </div>
                                 {% with savings=variant.variant_price|add:"-"|add:variant.get_discounted_amount %}
                                 <p class="text-center text-sm text-red-500 mt-2">
-                                    Save ₹{{ savings|floatformat:2 }}
+                                    {{ savings|floatformat:2 }}
                                 </p>
                                 {% endwith %}
                             {% else %}
@@ -112,7 +112,7 @@
                 {% endfor %}
             </div>
             <div class="text-right mt-8">
-                <a href="{% url 'category:category_list' %}" class="inline-flex items-center text-white font-semibold text-xl hover:underline">
+                <a href="{% url 'category:user_category_list' %}" class="inline-flex items-center text-white font-semibold text-xl hover:underline">
                     VIEW ALL CATEGORIES
                     <span class="material-symbols-outlined ml-2">trending_flat</span>
                 </a>

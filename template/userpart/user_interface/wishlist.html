@@ -42,18 +42,15 @@
                     <p class="text-xl text-gray-500 line-through">₹{{ item.variant.variant_price|floatformat:2 }}</p>
                     {% endif %}
                 </div>
-                {% if item.variant.discount_percentage > 0 %}
-                {% with savings=item.variant.variant_price|add:"-"|add:item.variant.get_discounted_amount %}
                 
-                {% endwith %}
-                {% endif %}
                 <div class="mt-4 flex justify-center space-x-2">
                     <a href="{% url 'product:product_detail_page' item.variant.product.id %}" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition duration-300">View Product</a>
-                    <form method="post" action="{% url 'cart:add_to_cart' %}">
+                    <form method="post" class="add-to-cart-form" action="{% url 'cart:add_to_cart' %}">
                         {% csrf_token %}
                         <input type="hidden" name="product_id" value="{{ item.variant.product.id }}">
                         <input type="hidden" name="variant_id" value="{{ item.variant.id }}">
-                        <button type="submit" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-300">Add to Cart</button>
+                        <input type="hidden" name="quantity" value="1"> <!-- Default quantity -->
+                        <button type="submit" class="add-to-cart-btn bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition duration-300">Add to Cart</button>
                     </form>
                 </div>
             </div>
@@ -69,5 +66,80 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Get all "add to cart" forms in the wishlist
+        const addToCartForms = document.querySelectorAll('.add-to-cart-form');
+    
+        addToCartForms.forEach((addToCartForm) => {
+            addToCartForm.addEventListener('submit', function (e) {
+                e.preventDefault(); // Prevent default form submission
+    
+                const addToCartBtn = addToCartForm.querySelector('.add-to-cart-btn');
+    
+                // Disable the button to prevent multiple clicks
+                addToCartBtn.disabled = true;
+    
+                const formData = new FormData(addToCartForm);
+    
+                fetch(addToCartForm.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    addToCartBtn.disabled = false; // Re-enable the button
+    
+                    if (data.status === 'success') {
+                        // Show success message using the message from the server response
+                        Swal.fire({
+                            position: 'top-end',
+                            icon: 'success',
+                            title: data.message || 'Added to cart!',
+                            showConfirmButton: false,
+                            timer: 2000,
+                            toast: true
+                        });
+    
+                        // Change button text to 'Go to Cart' after successful addition
+                        addToCartBtn.textContent = 'Go to Cart';
+    
+                        // Redirect to cart if "Go to Cart" is clicked
+                        addToCartBtn.addEventListener('click', function() {
+                            window.location.href = "{% url 'cart:cart_view' %}";
+                        });
+                    } else {
+                        // Show error message using the message from the server response
+                        Swal.fire({
+                            position: 'top-end',
+                            icon: 'error',
+                            title: data.message || 'Failed to add to cart',
+                            showConfirmButton: false,
+                            timer: 2000,
+                            toast: true
+                        });
+                    }
+                })
+                .catch(error => {
+                    addToCartBtn.disabled = false; // Re-enable the button
+                    Swal.fire({
+                        position: 'top-end',
+                        icon: 'error',
+                        title: 'An error occurred',
+                        showConfirmButton: false,
+                        timer: 2000,
+                        toast: true
+                    });
+                    console.error('Error:', error);
+                });
+            });
+        });
+    });
+    
+</script>
 
 {% endblock %}

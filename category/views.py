@@ -2,6 +2,7 @@ from django.shortcuts import render,redirect,get_object_or_404
 from .models import Category
 from .forms import Categoryforms
 from django.contrib import messages
+from django.views.generic import ListView
 
 
 def category_list(request):
@@ -47,3 +48,17 @@ def toggle_category_listing(request,category_id):
     category.is_listed = not category.is_listed
     category.save()
     return redirect('category:category_list')
+
+
+
+#user side
+
+
+class UserCategoryListView(ListView):
+    model = Category
+    template_name = 'userpart/user_panel/user_category_list.html'
+    context_object_name = 'categories'
+    paginate_by = 12  
+
+    def get_queryset(self):
+        return Category.objects.filter(is_listed=True).order_by('category_name')
