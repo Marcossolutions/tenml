@@ -216,6 +216,7 @@
                         },
                     {% endfor %}
                 ];
+                
                 messages.forEach(message => {
                     Swal.fire({
                         toast: true,
@@ -223,13 +224,29 @@
                         icon: message.level === 'success' ? 'success' : 'error',
                         title: message.text,
                         showConfirmButton: false,
-                        timer: 3000
+                        timer: 3000,
+                        background: '#2D3748',  // Slightly lighter dark background for better contrast
+                        color: '#E2E8F0',  // Light gray text for better readability
+                        iconColor: message.level === 'success' ? '#48BB78' : '#F56565',  // Adjusted green and red for better visibility
+                        customClass: {
+                            popup: 'swal-toast-popup',
+                            title: 'swal-toast-title',
+                        },
+                        showCloseButton: true,  // Adds a close button for better user control
+                        closeButtonHtml: '×',  // Custom close button symbol
+                        timerProgressBar: true,  // Adds a progress bar to the timer
+                        didOpen: (toast) => {
+                            toast.addEventListener('mouseenter', Swal.stopTimer);
+                            toast.addEventListener('mouseleave', Swal.resumeTimer);
+                        }
                     });
                 });
             {% endif %}
         });
     </script>
-
-
+    
+    
+    
+    
 </body>
 </html>

@@ -83,7 +83,7 @@ def place_order(request):
             coupon_code = None
             if 'applied_coupon' in request.session:
                 del request.session['applied_coupon']
-                
+    
     final_amount = cart_total - discount_amount
     
     # New condition: Check if the order is above Rs 1000 and payment method is Cash on Delivery
@@ -91,7 +91,42 @@ def place_order(request):
         messages.error(request, "Cash on Delivery is not available for orders above Rs 1000. Please choose a different payment method.")
         return redirect('cart:checkout')
     
-    with transaction.atomic():    
+    # Wallet payment logic
+    wallet, created = Wallet.objects.get_or_create(user=user,defaults={'balance': Decimal('0.00')})
+    wallet_balance = wallet.balance
+    remaining_amount = Decimal('0.00')
+    payment_completed = False
+    
+    if payment_method == 'Wallet Payment':
+        if wallet_balance >= final_amount:
+            # Full payment from wallet
+            wallet.balance -= final_amount
+            wallet.save()
+            WalletTransaction.objects.create(
+                wallet=wallet,
+                amount=final_amount,
+                transaction_type='DEBIT',
+                description=f"Payment for order {str(uuid.uuid4())[:10]}"
+            )
+            payment_completed=True
+        else:
+            if wallet_balance>Decimal('0.00'):
+                # Partial payment from wallet, remaining with Razorpay
+                remaining_amount = final_amount - wallet_balance
+                wallet.balance = Decimal('0.00')
+                wallet.save()
+                WalletTransaction.objects.create(
+                    wallet=wallet,
+                    amount=wallet_balance,
+                    transaction_type='DEBIT',
+                    description=f"Partial payment for order {str(uuid.uuid4())[:10]}"
+                )
+                payment_method = 'Wallet + Razorpay'
+            else:
+                payment_method='Razorpay'
+                messages.warning(request,"Insufficient wallet balance. Switched to Razorpay Payemnt.")
+    
+    with transaction.atomic():
         order = OrderMain.objects.create(
             user=user,
             address=order_address,
@@ -100,48 +135,49 @@ def place_order(request):
             final_amount=final_amount,
             payment_method=payment_method,
             order_id=str(uuid.uuid4())[:10],
-            order_status='Pending' if payment_method == 'Cash on Delivery' else 'Awaiting Payment'
+            order_status='Confirmed' if payment_completed else ('Pending' if payment_method == 'Cash on Delivery' else 'Awaiting Payment'),
+            payment_status = payment_completed
         )
-    
-    for item in cart_items:
-        OrderSub.objects.create(
-            main_order=order,
-            variant=item.variant,
-            quantity=item.quantity,
-            price=item.variant.get_discounted_amount()
-        )
-        item.variant.variant_stock -= item.quantity
-        item.variant.save()
+        
+        for item in cart_items:
+            OrderSub.objects.create(
+                main_order=order,
+                variant=item.variant,
+                quantity=item.quantity,
+                price=item.variant.get_discounted_amount()
+            )
+            item.variant.variant_stock -= item.quantity
+            item.variant.save()
         cart_items.delete()
-    
-    if coupon_code:
-        coupon = Coupon.objects.get(coupon_code=coupon_code)
-        UserCoupon.objects.create(
-            user=user,
-            coupon=coupon,
-            redeemed=True,
-            redeemed_at=timezone.now()        
-        )
+        
+        if coupon_code:
+            coupon = Coupon.objects.get(coupon_code=coupon_code)
+            UserCoupon.objects.create(
+                user=user,
+                coupon=coupon,
+                redeemed=True,
+                redeemed_at=timezone.now()
+            )
         
         if 'applied_coupon' in request.session:
             del request.session['applied_coupon']
-            
-    if payment_method == 'Razorpay':
-        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-        payment_data = {
-            'amount': int(final_amount * 100),
-            'currency': 'INR',
-            'receipt': order.order_id,
-            'payment_capture': '1'
-        }
-        razorpay_order = client.order.create(data=payment_data)
-        order.payment_id = razorpay_order['id']
-        order.save()
         
-        return redirect('orders:razorpay_payment', order_id=order.order_id)
-    
-    messages.success(request, "Order placed successfully!")
-    return redirect('orders:order_confirmation', order_id=order.order_id)
+        if payment_method == 'Razorpay' or payment_method == 'Wallet + Razorpay':
+            client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+            payment_data = {
+                'amount': int(remaining_amount * 100) if remaining_amount > 0 else int(final_amount * 100),
+                'currency': 'INR',
+                'receipt': order.order_id,
+                'payment_capture': '1'
+            }
+            razorpay_order = client.order.create(data=payment_data)
+            order.payment_id = razorpay_order['id']
+            order.save()
+            
+            return redirect('orders:razorpay_payment', order_id=order.order_id)
+        
+        messages.success(request, "Order placed successfully!")
+        return redirect('orders:order_confirmation', order_id=order.order_id)
 
 @login_required
 def order_confirmation(request,order_id):

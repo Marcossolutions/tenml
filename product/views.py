@@ -70,6 +70,8 @@ def edit_product(request, product_id):
             product.save()
             messages.success(request, 'Product updated successfully.')
             return redirect('product:product_list')
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         form = Productform(instance=product)
     
@@ -105,41 +107,57 @@ def toggle_product(request, product_id):
 
 
 
-def create_variant(request,product_id):
-    product = get_object_or_404(Product, id =product_id)
+def create_variant(request, product_id):
+    product = get_object_or_404(Product, id=product_id)
     
-    if  request.method == 'POST':
-        form = ProductVariantForm(request.POST)
+    if request.method == 'POST':
+        form = ProductVariantForm(request.POST, product=product)
         if form.is_valid():
             variant = form.save(commit=False)
             variant.product = product
             variant.save()
-            messages.success(request,'Variant added successfully.')
-            return redirect('product:variant_details',product_id = product.id)
+            messages.success(request, 'Variant added successfully.')
+            return redirect('product:variant_details', product_id=product.id)
+        else:
+            # Log form errors to messages
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")  # Display field errors
     else:
-        form = ProductVariantForm()
-        
+        form = ProductVariantForm(product=product)
+    
     context = {
-        'form':form,
-        'product':product
+        'form': form,
+        'product': product,
+        'messages': messages.get_messages(request)  # Pass messages to the context
     }
-    return render(request,'adminpart/variant/create_variant.html',context)
+    return render(request, 'adminpart/variant/create_variant.html', context)
 
 def edit_variant(request, variant_id):
-    variant = get_object_or_404(ProductVariant, id= variant_id)
-    
+    variant = get_object_or_404(ProductVariant, id=variant_id)
+
     if request.method == 'POST':
-        form = ProductVariantForm(request.POST, instance = variant)
+        form = ProductVariantForm(request.POST, instance=variant, product=variant.product)
         if form.is_valid():
             form.save()
-            messages.success(request,'Variant updated successfully.')
-            return redirect ('product:variant_details', product_id = variant.product.id)
-        
+            messages.success(request, 'Variant updated successfully.')
+            return redirect('product:variant_details', product_id=variant.product.id)
+        else:           
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field}: {error}")  # Log field errors
+
+
     else:
-        form = ProductVariantForm(instance=variant)
-        
-    return render(request,'adminpart/variant/edit_variant.html', {'form':form,'variant':variant})    
-    
+        form = ProductVariantForm(instance=variant, product=variant.product)
+
+    context = {
+        'form': form,
+        'variant': variant,
+        'product': variant.product,
+        'messages': messages.get_messages(request)  # Ensure messages are passed to the template
+    }
+    return render(request, 'adminpart/variant/edit_variant.html', context)
 
 def variant_details(request,product_id):
     product = get_object_or_404(Product,id =product_id)

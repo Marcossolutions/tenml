@@ -3,20 +3,23 @@
 
 {% block content %}
 <section class="content-main">
-    <div class="content-header">
-        <h2 class="content-title">Products</h2>
+    <div class="content-header mb-4">
+        <h1 class="content-title display-6 text-light">Products List</h1>
         <div>
             <a href="{% url 'product:create_product' %}" class="btn btn-primary"><i class="material-icons md-plus"></i> Add Product</a>
         </div>
     </div>
-    <div class="card mb-4">
-        <header class="card-header">
-            <div class="row gx-3">
+    <div class="card text-light mb-4 border-0">
+        <header class="card-header bg-secondary">
+            <div class="row gx-3 py-3">
                 <div class="col-lg-4 col-md-6 me-auto">
-                    <input type="text" placeholder="Search..." class="form-control">
+                    <div class="input-group input-group-md">
+                        <span class="input-group-text bg-dark border-dark text-light"><i class="fas fa-search"></i></span>
+                        <input type="text" placeholder="Search products..." class="form-control form-control-md bg-dark border-dark text-light">
+                    </div>
                 </div>
                 <div class="col-lg-2 col-md-3 col-6">
-                    <select class="form-select">
+                    <select class="form-select bg-dark text-light border-dark">
                         <option>All Categories</option>
                         {% for category in categories %}
                         <option>{{ category.category_name }}</option>
@@ -27,56 +30,62 @@
         </header> 
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover align-middle text-light">
                     <thead>
                         <tr>
-                            <th>ID</th>
-                            <th>Product</th>
-                            <th>Category</th>
-                            <th>Status</th>
-                            <th>Price</th>
-                            <th>Details</th>
-                            <th>Variants</th>
-                            <th class="text-end">Actions</th>
+                            <th class="fs-6">ID</th>
+                            <th class="fs-6">Product</th>
+                            <th class="fs-6">Category</th>
+                            <th class="fs-6">Status</th>
+                            <th class="fs-6">Details</th>
+                            <th class="fs-6">Variants</th>
+                            <th class="fs-6 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for product in products %}
                         <tr>
-                            <td>{{ product.id }}</td>
+                            <td class="fs-6">{{ product.id }}</td>
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <img src="{{ product.thumbnail.url }}" alt="{{ product.product_name }}" class="img-xs me-2">
-                                    <span>{{ product.product_name }}</span>
+                                    <img src="{{ product.thumbnail.url }}" alt="{{ product.product_name }}" class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                                    <div class="fs-6">{{ product.product_name }}</div>
                                 </div>
                             </td>
-                            <td>{{ product.product_category.category_name }}</td>
+                            <td class="fs-6">{{ product.product_category.category_name }}</td>
                             <td>
                                 {% if product.is_active %}
-                                <span class="badge bg-success">Active</span>
+                                <span class="badge bg-success fs-6">Active</span>
                                 {% else %}
-                                <span class="badge bg-danger">Inactive</span>
+                                <span class="badge bg-danger fs-6">Inactive</span>
                                 {% endif %}
                             </td>
-                            <td>₹{{ product.price }}</td>
                             <td>
-                                <a href="{% url 'product:product_detail' product.id %}" class="btn btn-sm btn-outline-primary">Details</a>
+                                <a href="{% url 'product:product_detail' product.id %}" class="btn btn-sm btn-outline-primary rounded-pill">Details</a>
                             </td>
                             <td>
-                                <a href="{% url 'product:variant_details' product.id %}" class="btn btn-sm btn-outline-info">View Variant</a>
+                                <a href="{% url 'product:variant_details' product.id %}" class="btn btn-sm btn-outline-info rounded-pill">View Variant</a>
                             </td>
                             <td class="text-end">
-                                <a href="{% url 'product:edit_product' product.id %}" class="btn btn-sm btn-outline-primary">
+                                <a href="{% url 'product:edit_product' product.id %}" class="btn btn-sm btn-outline-primary rounded-pill me-2 action-btn">
                                     <i class="fas fa-edit"></i>
+                                    <span>Edit</span>
                                 </a>
-                                <button class="btn btn-sm {% if product.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}" 
+                                <button class="btn btn-sm {% if product.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %} rounded-pill action-btn" 
                                         onclick="confirmAction({{ product.id }}, '{{ product.is_active }}')">
-                                    <i class="{% if product.is_active %}fas fa-trash{% else %}fas fa-undo{% endif %}"></i>
+                                    {% if product.is_active %}
+                                    <i class="fas fa-trash"></i>
+                                    <span>Deactivate</span>
+                                    {% else %}
+                                    <i class="fas fa-undo"></i>
+                                    <span>Activate</span>
+                                    {% endif %}
                                 </button>
                                 <form id="actionForm{{ product.id }}" action="{% url 'product:toggle_product' product.id %}" method="post" style="display: none;">
                                     {% csrf_token %}
                                 </form>
                             </td>
+                            
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -84,13 +93,11 @@
             </div>
         </div>
     </div>
-    <div class="pagination-area mt-15 mb-50">
-        <nav aria-label="Page navigation example">
-            <ul class="pagination justify-content-start">
-                <!-- Pagination elements -->
-            </ul>
-        </nav>
-    </div>
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination pagination-md justify-content-center">
+            <!-- Pagination elements (similar to user list page) -->
+        </ul>
+    </nav>
 </section>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -104,6 +111,7 @@
             confirmButtonText: 'Yes',
             cancelButtonText: 'No',
             customClass: {
+                popup: 'swal-dark',
                 title: 'swal-title',
                 htmlContainer: 'swal-text',
                 confirmButton: 'swal-confirm-button',
@@ -116,64 +124,36 @@
         });
     }
 </script>
+
+<!-- Add this CSS to your stylesheet or in a <style> tag in your HTML -->
 <style>
-    body {
-        background-color: #121212;
-        color: #e0e0e0;
+    .swal-dark {
+        background-color: #333 !important;
+        color: #fff !important;
     }
-    .card {
-        background-color: #1e1e1e;
+    .swal-title, .swal-text {
+        color: #fff !important;
     }
-    .table {
-        color: #e0e0e0;
+    .swal-confirm-button {
+        background-color: #3085d6 !important;
+        color: #fff !important;
     }
-    .table-hover tbody tr:hover {
-        background-color: #2c2c2c;
+    .swal-cancel-button {
+        background-color: #d33 !important;
+        color: #fff !important;
     }
-    .form-control, .form-select {
-        background-color: #2c2c2c;
-        color: #e0e0e0;
-        border-color: #444;
+    .action-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
-    .btn-outline-primary {
-        color: #bb86fc;
-        border-color: #bb86fc;
+    .action-btn i {
+        margin-right: 4px;
+        width: 16px;
+        text-align: center;
     }
-    .btn-outline-primary:hover {
-        background-color: #bb86fc;
-        color: #121212;
-    }
-    .btn-outline-danger {
-        color: #cf6679;
-        border-color: #cf6679;
-    }
-    .btn-outline-danger:hover {
-        background-color: #cf6679;
-        color: #121212;
-    }
-    .btn-outline-success {
-        color: #03dac6;
-        border-color: #03dac6;
-    }
-    .btn-outline-success:hover {
-        background-color: #03dac6;
-        color: #121212;
-    }
-    .swal2-popup {
-        background-color: #1e1e1e;
-        color: #e0e0e0;
-    }
-    .swal2-title, .swal2-html-container {
-        color: #e0e0e0 !important;
-    }
-    .swal2-confirm, .swal2-cancel {
-        color: #121212 !important;
-    }
-    .swal2-confirm {
-        background-color: #bb86fc !important;
-    }
-    .swal2-cancel {
-        background-color: #cf6679 !important;
+    .action-btn span {
+        line-height: 1;
     }
 </style>
 {% endblock %}

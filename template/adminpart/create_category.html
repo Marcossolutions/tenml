@@ -3,34 +3,74 @@
 
 {% block content %}
 <section class="content-main">
-    <div class="content-header">
-        <h2 class="content-title">Add New Category</h2>
+    <div class="content-header mb-4">
+        <h1 class="content-title display-6 text-light">Add New Category</h1>
         <div>
-            <a href="{% url 'category:category_list' %}" class="btn btn-light rounded btn-sm"><i class="fas fa-arrow-left"></i> Back to categories</a>
+            <a href="{% url 'category:category_list' %}" class="btn btn-outline-light rounded-pill btn-sm">
+                <i class="fas fa-arrow-left me-2"></i>Back to categories
+            </a>
         </div>
     </div>
-    <div class="card mb-4">
+
+    <div class="card text-light mb-4 border-0">
+        <header class="card-header bg-secondary">
+            <h5 class="card-title mt-2">Category Details</h5>
+        </header>
         <div class="card-body">
-            <form method="post" enctype="multipart/form-data" class="col-md-8 mx-auto">
+            <form method="post" enctype="multipart/form-data" class="col-lg-6 col-md-8 mx-auto">
                 {% csrf_token %}
-                <div class="mb-4 text-center">
-                    <label for="{{ form.category_name.id_for_label }}" class="form-label">Category Name</label>
+                <div class="mb-4">
+                    <label for="{{ form.category_name.id_for_label }}" class="form-label" style="font-size: 1.10rem;">Category Name</label>
                     {{ form.category_name }}
+                    <style>
+                        #{{ form.category_name.id_for_label }} {
+                            width: 100%;
+                            padding: 0.5rem 1rem;
+                            font-size: 1.5rem;
+                            border-radius: 0.3rem;
+                            background-color: #343a40;
+                            border: 1px solid #495057;
+                            color: #fff;
+                        }
+                    </style>
                 </div>
                 <div class="mb-4">
-                    <label for="{{ form.category_image.id_for_label }}" class="form-label">Category Image</label>
-                    {{ form.category_image }}
+                    <label for="{{ form.category_image.id_for_label }}" class="form-label" style="font-size: 1.10rem;">Category Image</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark border-dark text-light"><i class="fas fa-image"></i></span>
+                        {{ form.category_image }}
+                    </div>
+                    <style>
+                        #{{ form.category_image.id_for_label }} {
+                            flex: 1 1 auto;
+                            padding: 0.5rem 1rem;
+                            font-size: 1.25rem;
+                            border-radius: 0 0.3rem 0.3rem 0;
+                            background-color: #343a40;
+                            border: 1px solid #495057;
+                            color: #fff;
+                        }
+                    </style>
                 </div>
                 <div class="mb-4">
-                    <div class="form-check">
+                    <div class="form-check form-switch">
                         {{ form.is_listed }}
                         <label class="form-check-label" for="{{ form.is_listed.id_for_label }}">
                             List this category
                         </label>
                     </div>
+                    <style>
+                        #{{ form.is_listed.id_for_label }} {
+                            width: 3em;
+                            height: 1.5em;
+                            margin-right: 0.5em;
+                        }
+                    </style>
                 </div>
-                <div class="d-grid">
-                    <button type="submit" class="btn btn-primary">Add Category</button>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-plus-circle me-2"></i>Add Category
+                    </button>
                 </div>
             </form>
         </div>

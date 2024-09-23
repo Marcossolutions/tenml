@@ -4,6 +4,7 @@
 {% block content %}
 <section class="content-main">
     <div class="content-header">
+        <h3>{{ product.product_name }}</h3>
         <h2 class="content-title">Edit Variant</h2>
         <div>
             <a href="{% url 'product:variant_details' variant.product.id %}" class="btn btn-outline-primary">
@@ -13,17 +14,80 @@
     </div>
     <div class="card mb-4">
         <div class="card-body">
-            {% if messages %}
-                <div class="alert alert-success">
+            <div>
+                {% if messages %}
                     {% for message in messages %}
-                        {{ message }}
+                        <div class="alert alert-success">
+                            {{ message }}
+                        </div>
                     {% endfor %}
-                </div>
-            {% endif %}
-            <form method="post">
+                {% endif %}
+                {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {{ form.non_field_errors|join:", " }}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <form method="post" class="needs-validation" novalidate>
                 {% csrf_token %}
-                {{ form.as_p }}
-                <button type="submit" class="btn btn-primary">Save Changes</button>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            {{ form.size }}
+                            <label for="{{ form.size.id_for_label }}">Size</label>
+                            {% if form.size.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.size.errors|join:", " }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            {{ form.variant_price }}
+                            <label for="{{ form.variant_price.id_for_label }}">Price</label>
+                            {% if form.variant_price.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.variant_price.errors|join:", " }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            {{ form.variant_stock }}
+                            <label for="{{ form.variant_stock.id_for_label }}">Stock</label>
+                            {% if form.variant_stock.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.variant_stock.errors|join:", " }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            {{ form.discount_percentage }}
+                            <label for="{{ form.discount_percentage.id_for_label }}">Discount Percentage</label>
+                            {% if form.discount_percentage.errors %}
+                                <div class="invalid-feedback">
+                                    {{ form.discount_percentage.errors|join:", " }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                <div class="form-check form-switch mb-3">
+                    {{ form.variant_status }}
+                    <label class="form-check-label" for="{{ form.variant_status.id_for_label }}">Active</label>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                </div>
             </form>
         </div>
     </div>

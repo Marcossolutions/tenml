@@ -3,64 +3,63 @@
 
 {% block content %}
 <section class="content-main">
-    <div class="content-header">
-        <h2 class="content-title">Users list</h2>
-        
+    <div class="content-header mb-4">
+        <h1 class="content-title display-6 text-light">Users List</h1>
     </div>
-    <div class="card mb-4">
-        <header class="card-header">
-            <div class="row gx-3">
+    <div class="card text-light mb-4 border-0">
+        <header class="card-header bg-secondary">
+            <div class="row gx-3 py-3">
                 <div class="col-lg-4 col-md-6 me-auto">
-                    <input type="text" placeholder="Search..." class="form-control">
+                    <div class="input-group input-group-md">
+                        <span class="input-group-text bg-dark border-dark text-light"><i class="fas fa-search"></i></span>
+                        <input type="text" placeholder="Search users..." class="form-control form-control-md bg-dark border-dark text-light">
+                    </div>
                 </div>
-                <div class="col-lg-2 col-md-3 col-6">
-                  
-                </div>
-               
             </div>
         </header> 
         <div class="card-body">
             <div class="table-responsive">
-                <table class="table table-hover">
+                <table class="table table-hover align-middle text-light">
                     <thead>
                         <tr>
-                            <th>Id</th>
-                            <th>Username</th>
-                            <th>Email</th>
-                            <th>Phone No</th>
-                            <th>Status</th>
-                            <th class="text-end">Action</th>
+                            <th class="fs-6">ID</th>
+                            <th class="fs-6">Username</th>
+                            <th class="fs-6">Email</th>
+                            <th class="fs-6">Phone No</th>
+                            <th class="fs-6">Status</th>
+                            <th class="text-end fs-6">Action</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for user in users %}
+                        {% for user in page_obj %}
                         <tr>
-                            <td width="15%">
-                                <a href="#" class="itemside">
-                                    
-                                    <div class="info pl-3">
-                                        
-                                        <small class="text-muted"> {{ user.id }}</small>
+                            <td class="fs-6">{{ user.id }}</td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="rounded-circle bg-primary text-white d-flex justify-content-center align-items-center me-3" style="width: 40px; height: 40px; font-size: 1rem;">
+                                        {{ user.username|first|upper }}
                                     </div>
-                                </a>
+                                    <div class="fs-6">{{ user.username }}</div>
+                                </div>
                             </td>
-                            <td>{{ user.username }}</td>
-                            
-                            <td>{{ user.email }}</td>
-                            
-                            <td>{{ user.phone_number }}</td>
-
+                            <td class="fs-6">{{ user.email }}</td>
+                            <td class="fs-6">{{ user.phone_number }}</td>
                             <td>
                                 {% if user.is_active %}
-                                <span class="badge rounded-pill alert-success"> Active</span>
+                                <span class="badge bg-success fs-6">Active</span>
                                 {% else %}
-                                <span class="badge rounded-pill alert-danger"> Inactive </span>
-                                {% endif %} 
-                            <td class="text-end">                                
-                                <form action="{% if user.is_active %}{% url 'adminpanel:delete_user' user.id %}{% else %}{% url 'adminpanel:restore_user' user.id %}{% endif %}" method="post" onsubmit="return confirm('{% if user.is_active %}Are you sure you want to delete this user?{% else %} Are you sure you want to restore this user?{% endif %}');">
+                                <span class="badge bg-danger fs-6">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <form action="{% if user.is_active %}{% url 'adminpanel:delete_user' user.id %}{% else %}{% url 'adminpanel:restore_user' user.id %}{% endif %}" method="post" onsubmit="return confirm('{% if user.is_active %}Are you sure you want to block this user?{% else %}Are you sure you want to unblock this user?{% endif %}');">
                                     {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm {% if user.is_active %}btn-danger{% else %}btn-success{% endif %} rounded font-sm mt-15">
-                                        {% if user.is_active %}Block{% else %}Unblock{% endif %}
+                                    <button type="submit" class="btn btn-md {% if user.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %} rounded-pill">
+                                        {% if user.is_active %}
+                                        <i class="fas fa-user-slash me-1"></i> Block
+                                        {% else %}
+                                        <i class="fas fa-user-check me-1"></i> Unblock
+                                        {% endif %}
                                     </button>
                                 </form>
                             </td>
@@ -69,19 +68,38 @@
                     </tbody>
                 </table>
             </div>
-        </div> <!-- card-body end// -->
-    </div> <!-- card end// -->
-    <div class="pagination-area mt-15 mb-50">
-        <nav aria-label="Page navigation example">
-            <ul class="pagination justify-content-start">
-                <li class="page-item active"><a class="page-link" href="#">01</a></li>
-                <li class="page-item"><a class="page-link" href="#">02</a></li>
-                <li class="page-item"><a class="page-link" href="#">03</a></li>
-                <li class="page-item"><a class="page-link dot" href="#">...</a></li>
-                <li class="page-item"><a class="page-link" href="#">16</a></li>
-                <li class="page-item"><a class="page-link" href="#"><i class="material-icons md-chevron_right"></i></a></li>
-            </ul>
-        </nav>
+        </div>
     </div>
-</section> <!-- content-main end// -->
-{% endblock  %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination pagination-md justify-content-center">
+            {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link bg-dark text-light border-dark" href="?page={{ page_obj.previous_page_number }}"><i class="fas fa-chevron-left"></i></a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link bg-dark text-light border-dark" href="#" tabindex="-1" aria-disabled="true"><i class="fas fa-chevron-left"></i></a>
+                </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <li class="page-item active"><a class="page-link bg-primary border-primary" href="#">{{ num }}</a></li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item"><a class="page-link bg-dark text-light border-dark" href="?page={{ num }}">{{ num }}</a></li>
+                {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link bg-dark text-light border-dark" href="?page={{ page_obj.next_page_number }}"><i class="fas fa-chevron-right"></i></a>
+                </li>
+            {% else %}
+                <li class="page-item disabled">
+                    <a class="page-link bg-dark text-light border-dark" href="#" tabindex="-1" aria-disabled="true"><i class="fas fa-chevron-right"></i></a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+</section>
+{% endblock %}

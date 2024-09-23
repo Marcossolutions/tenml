@@ -3,69 +3,114 @@
 
 {% block content %}
 <section class="content-main">
-    <div class="content-header">
-        <h2 class="content-title">Product Details: {{ product.product_name }}</h2>
+    <div class="content-header mb-4">
+        <h1 class="content-title display-5 text-light">{{ product.product_name }}</h1>
         <div>
-            <a href="{% url 'product:product_list' %}" class="btn btn-outline-primary"><i class="fas fa-list"></i> Product List</a>
-            <a href="{% url 'product:edit_product' product.id %}" class="btn btn-outline-secondary"><i class="fas fa-edit"></i> Edit Product</a>
+            <a href="{% url 'product:product_list' %}" class="btn btn-outline-primary rounded-pill me-2">
+                <i class="fas fa-list me-2"></i> Product List
+            </a>
+            <a href="{% url 'product:edit_product' product.id %}" class="btn btn-outline-secondary rounded-pill">
+                <i class="fas fa-edit me-2"></i> Edit Product
+            </a>
         </div>
     </div>
-    <div class="card mb-4">
+    
+    <div class="card text-light mb-4 border-0">
         <div class="card-body">
             <div class="row">
-                <div class="col-md-4">
+                <div class="col-md-4 mb-4 mb-md-0">
                     {% if product.thumbnail %}
-                        <img src="{{ product.thumbnail.url }}" alt="{{ product.product_name }}" class="img-fluid rounded">
+                        <img src="{{ product.thumbnail.url }}" alt="{{ product.product_name }}" class="img-fluid rounded shadow">
                     {% else %}
-                        <div class="text-center p-4 bg-secondary text-white rounded">No Image Available</div>
+                        <div class="text-center p-5 bg-secondary text-white rounded shadow">
+                            <i class="fas fa-image fa-5x mb-3"></i>
+                            <p class="lead">No Image Available</p>
+                        </div>
                     {% endif %}
                 </div>
                 <div class="col-md-8">
-                    <h3>{{ product.product_name }}</h3>
-                    <p><strong>Category:</strong> {{ product.product_category }}</p>
-                    <p><strong>Price:</strong> ₹{{ default_price }}</p>
-                
-                    {% if variants %}
-                        {% for variant in variants %}
-                            {% if variant.discount_percentage > 0 %}
-                                <p><strong>Discount Percentage:</strong> {{ variant.discount_percentage }}%</p>
-                                <p><strong>Discounted Amount:</strong> ₹{{ variant.get_discounted_amount }}</p>
+                    <div class="mb-4">
+                        <h3 class="text-primary mb-3">Product Information</h3>
+                        <p class="fs-5"><strong class="text-light">Category:</strong> <span class="text-secondary">{{ product.product_category }}</span></p>
+                        <p class="fs-5"><strong class="text-light">Status:</strong> 
+                            {% if product.is_active %}
+                                <span class="badge bg-success fs-6">Active</span>
+                            {% else %}
+                                <span class="badge bg-danger fs-6">Inactive</span>
                             {% endif %}
-                        {% endfor %}
+                        </p>
+                        <p class="fs-5"><strong class="text-light">Created At:</strong> <span class="text-secondary">{{ product.created_at|date:"F d, Y H:i" }}</span></p>
+                        <p class="fs-5"><strong class="text-light">Last Updated:</strong> <span class="text-secondary">{{ product.updated_at|date:"F d, Y H:i" }}</span></p>
+                    </div>
+                    
+                    {% if variants %}
+                        <div class="mb-4">
+                         
+                            {% for variant in variants %}
+                                {% if variant.discount_percentage > 0 %}
+                                    <p class="fs-5"><strong class="text-light">Discount:</strong> <span class="text-secondary">{{ variant.discount_percentage }}%</span></p>
+                                    <p class="fs-5"><strong class="text-light">Discounted Amount:</strong> <span class="text-secondary">₹{{ variant.get_discounted_amount }}</span></p>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
                     {% endif %}
-                    <p><strong>Status:</strong> 
-                        {% if product.is_active %}
-                            <span class="badge bg-success">Active</span>
-                        {% else %}
-                            <span class="badge bg-danger">Inactive</span>
-                        {% endif %}
-                    </p>
-                    <p><strong>Created At:</strong> {{ product.created_at }}</p>
-                    <p><strong>Last Updated:</strong> {{ product.updated_at }}</p>
-                    <h4 class="mt-4">Description</h4>
-                    <p>{{ product.product_decription }}</p>
-                    <h4 class="mt-4">Additional Images</h4>
-                    <a href="{% url 'product:upload_images' product.id %}" class="btn btn-outline-primary mb-3"><i class="fas fa-upload"></i> Add Images</a>
-                    <div class="row">
-                        {% for image in product_images %}
-                            <div class="col-md-3 mb-3">
-                                <div class="card">
-                                    <img src="{{ image.images.url }}" class="card-img-top" alt="Product Image">
-                                    <div class="card-body">
-                                        <form method="post" action="{% url 'product:delete_image' image.id %}" style="display:inline;">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-outline-danger"><i class="fas fa-trash"></i> Delete</button>
-                                        </form>
-                                    </div>
+                    
+                    <div class="mb-4">
+                        <h3 class="text-primary mb-3">Description</h3>
+                        <p class="fs-5 text-secondary">{{ product.product_decription }}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-5">
+                <h3 class="text-primary mb-3">Additional Images</h3>
+                <a href="{% url 'product:upload_images' product.id %}" class="btn btn-outline-primary rounded-pill mb-4">
+                    <i class="fas fa-upload me-2"></i> Add Images
+                </a>
+                <div class="row">
+                    {% for image in product_images %}
+                        <div class="col-md-3 col-sm-6 mb-4">
+                            <div class="card bg-dark">
+                                <img src="{{ image.images.url }}" class="card-img-top" alt="Product Image">
+                                <div class="card-body text-center">
+                                    <form method="post" action="{% url 'product:delete_image' image.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-danger rounded-pill">
+                                            <i class="fas fa-trash me-2"></i> Delete
+                                        </button>
+                                    </form>
                                 </div>
                             </div>
-                        {% empty %}
-                            <p>No additional images available.</p>
-                        {% endfor %}
-                    </div>
+                        </div>
+                    {% empty %}
+                        <p class="fs-5 text-secondary">No additional images available.</p>
+                    {% endfor %}
                 </div>
             </div>
         </div>
     </div>
 </section>
+
+<style>
+    .content-main {
+        background-color: #1a1a2e;
+        color: #e0e0e0;
+        padding: 2rem;
+    }
+    .card {
+        background-color: #16213e;
+    }
+    .text-primary {
+        color: #4a92ff !important;
+    }
+    .text-secondary {
+        color: #a0a0a0 !important;
+    }
+    .btn-outline-primary, .btn-outline-secondary, .btn-outline-danger {
+        border-width: 2px;
+    }
+    .btn-outline-primary:hover, .btn-outline-secondary:hover, .btn-outline-danger:hover {
+        color: #fff;
+    }
+</style>
 {% endblock %}

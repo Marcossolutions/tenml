@@ -2,7 +2,6 @@
 {% load static %}
 
 {% block content %}
-
 <section class="content-main">
     <div class="content-header">
         <h2 class="content-title">{{ product.product_name }} - Variants</h2>
@@ -12,55 +11,55 @@
         </div>
     </div>
 
-    <div class="card mb-4">
-        <header class="card-header">
-            <h4>Manage Variants</h4>
+    <div class="card mb-4 shadow-sm">
+        <header class="card-header bg-primary text-white">
+            <h4 class="mb-0">Manage Variants</h4>
         </header>
-        <div class="card-body">
-            <table class="table table-hover">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Size</th>
-                        <th>Price</th>
-                        <th>Stock</th>
-                        <th>Status</th>
-                        <th class="text-end">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for variant in variants %}
-                    <tr>
-                        <td>{{ variant.id }}</td>
-                        <td>{{ variant.size }}</td>
-                        <td>₹{{ variant.variant_price }}</td>
-                        <td>{{ variant.variant_stock }}</td>
-                        <td>
-                            {% if variant.variant_status %}
-                            <span class="badge bg-success">Active</span>
-                            {% else %}
-                            <span class="badge bg-danger">Inactive</span>
-                            {% endif %}
-                        </td>
-                        <td class="text-end">
-                            <a href="{% url 'product:edit_variant' variant.id %}" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-edit"></i>
-                            </a>
-                            <form id="toggleForm{{ variant.id }}" action="{% url 'product:toggle_variant_status' variant.id %}" method="post" style="display: inline;">
-                                {% csrf_token %}
-                                <button type="submit" class="btn btn-sm {% if variant.variant_status %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
-                                    <i class="{% if variant.variant_status %}fas fa-trash{% else %}fas fa-undo{% endif %}"></i>
-                                </button>
-                            </form>
-                            {% if not variant.variant_status %}
-                           
-                            {% endif %}
-                        </td>
-                        
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped mb-0">
+                    <thead class="bg-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Size</th>
+                            <th>Price</th>
+                            <th>Discount (%)</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for variant in variants %}
+                        <tr>
+                            <td>{{ variant.id }}</td>
+                            <td>{{ variant.size }}</td>
+                            <td>₹{{ variant.variant_price }}</td>
+                            <td>{{ variant.discount_percentage }}%</td>
+                            <td>{{ variant.variant_stock }}</td>
+                            <td>
+                                {% if variant.variant_status %}
+                                <span class="badge bg-success">Active</span>
+                                {% else %}
+                                <span class="badge bg-danger">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'product:edit_variant' variant.id %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form id="toggleForm{{ variant.id }}" action="{% url 'product:toggle_variant_status' variant.id %}" method="post" style="display: inline;">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm {% if variant.variant_status %}btn-outline-danger{% else %}btn-outline-success{% endif %}">
+                                        <i class="{% if variant.variant_status %}fas fa-trash{% else %}fas fa-undo{% endif %}"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </section>
@@ -69,7 +68,7 @@
 <script>
     document.querySelectorAll('[id^="toggleForm"]').forEach(form => {
         form.addEventListener('submit', function(event) {
-            event.preventDefault(); // Prevent the form from submitting immediately
+            event.preventDefault();
 
             const action = this.querySelector('button').classList.contains('btn-outline-danger') ? 'deactivate' : 'activate';
             
@@ -80,6 +79,7 @@
                 confirmButtonText: 'Yes',
                 cancelButtonText: 'No',
                 customClass: {
+                    popup: 'swal-dark',
                     title: 'swal-title',
                     htmlContainer: 'swal-text',
                     confirmButton: 'swal-confirm-button',
@@ -87,75 +87,129 @@
                 },
             }).then((result) => {
                 if (result.isConfirmed) {
-                    this.submit(); // Submit the form if the user confirms
+                    this.submit();
                 }
             });
         });
     });
 </script>
 
-
 <style>
+    :root {
+        --primary-color: #bb86fc;
+        --secondary-color: #03dac6;
+        --background-color: #121212;
+        --surface-color: #1e1e1e;
+        --on-surface-color: #ffffff;
+        --error-color: #cf6679;
+    }
+
     body {
-        background-color: #121212;
-        color: #e0e0e0;
+        background-color: var(--background-color);
+        color: var(--on-surface-color);
+        font-size: 16px;
     }
+
+    .content-main {
+        padding: 2rem;
+    }
+
+    .content-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .content-title {
+        font-size: 2rem;
+        color: var(--on-surface-color);
+    }
+
     .card {
-        background-color: #1e1e1e;
+        background-color: var(--surface-color);
+        border: none;
+        border-radius: 8px;
+        overflow: hidden;
     }
+
+    .card-header {
+        padding: 1rem;
+        font-size: 1.2rem;
+    }
+
     .table {
-        color: #e0e0e0;
+        color: var(--on-surface-color);
+        margin-bottom: 0;
+        font-size: 1rem;
     }
+
+    .table-striped tbody tr:nth-of-type(odd) {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
     .table-hover tbody tr:hover {
-        background-color: #2c2c2c;
+        background-color: rgba(255, 255, 255, 0.1);
     }
-    .form-control, .form-select {
-        background-color: #2c2c2c;
-        color: #e0e0e0;
-        border-color: #444;
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--background-color);
     }
+
     .btn-outline-primary {
-        color: #bb86fc;
-        border-color: #bb86fc;
+        color: var(--primary-color);
+        border-color: var(--primary-color);
     }
+
     .btn-outline-primary:hover {
-        background-color: #bb86fc;
-        color: #121212;
+        background-color: var(--primary-color);
+        color: var(--background-color);
     }
+
     .btn-outline-danger {
-        color: #cf6679;
-        border-color: #cf6679;
+        color: var(--error-color);
+        border-color: var(--error-color);
     }
+
     .btn-outline-danger:hover {
-        background-color: #cf6679;
-        color: #121212;
+        background-color: var(--error-color);
+        color: var(--background-color);
     }
+
     .btn-outline-success {
-        color: #03dac6;
-        border-color: #03dac6;
+        color: var(--secondary-color);
+        border-color: var(--secondary-color);
     }
+
     .btn-outline-success:hover {
-        background-color: #03dac6;
-        color: #121212;
+        background-color: var(--secondary-color);
+        color: var(--background-color);
     }
-    .swal2-popup {
-        background-color: #1e1e1e;
-        color: #e0e0e0;
+
+    .badge {
+        font-size: 0.9rem;
+        padding: 0.3em 0.6em;
     }
-    .swal2-title, .swal2-html-container {
-        color: #e0e0e0 !important;
+
+    .swal-dark {
+        background-color: var(--surface-color);
+        color: var(--on-surface-color);
     }
-    .swal2-confirm, .swal2-cancel {
-        color: #121212 !important;
+
+    .swal-title, .swal-text {
+        color: var(--on-surface-color) !important;
     }
-    .swal2-confirm {
-        background-color: #bb86fc !important;
+
+    .swal-confirm-button {
+        background-color: var(--primary-color) !important;
+        color: var(--background-color) !important;
     }
-    .swal2-cancel {
-        background-color: #cf6679 !important;
+
+    .swal-cancel-button {
+        background-color: var(--error-color) !important;
+        color: var(--background-color) !important;
     }
 </style>
-
-
-
 {% endblock %}

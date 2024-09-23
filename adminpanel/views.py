@@ -9,7 +9,7 @@ from django.utils.timezone import timedelta
 from datetime import timedelta ,datetime
 from django.db.models import Sum, Count, F, Q
 from django.utils import timezone
-
+from django.core.paginator import Paginator
 
 
 
@@ -44,9 +44,16 @@ def admin_dashboard(request):
     return render(request, 'adminpart/index-dark.html')
 
 def user_list(request):
-    users=User.objects.filter(is_admin=False)
-    print('clicked')
-    return render(request,'adminpart/users-list.html', {'users':users})
+    users = User.objects.filter(is_admin=False).order_by('id')
+    
+    # Number of users per page
+    per_page = 10
+    
+    paginator = Paginator(users, per_page)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'adminpart/users-list.html', {'page_obj': page_obj})
 
 def delete_user(request,user_id):
     user = get_object_or_404(User, id=user_id)

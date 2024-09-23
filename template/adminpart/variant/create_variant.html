@@ -4,65 +4,216 @@
 {% block content %}
 <section class="content-main">
     <div class="content-header">
+        <h3>{{ product.product_name }}</h3>
         <h2 class="content-title">Create Variant</h2>
         <div>
-            <a href="{% url 'product:variant_details' product.id %}" class="btn btn-outline-primary"><i class="fas fa-list"></i> Variant List</a>
+            <a href="{% url 'product:variant_details' product.id %}" class="btn btn-outline-primary">
+                <i class="fas fa-list"></i> Variant List
+            </a>
         </div>
     </div>
-    <div class="card mb-4">
+    
+    <div class="card mb-4 shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <h4 class="mb-0"><i class="fas fa-plus-circle me-2"></i>New Variant Details</h4>
+        </div>
         <div class="card-body">
-            {% if messages %}
-                <div class="alert alert-success">
-                    {% for message in messages %}
-                        {{ message }}
+            {% comment %} {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-success alert-dismissible fade show" role="alert">
+                        <i class="fas fa-check-circle me-2"></i>{{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+            
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                        <div>{{ error }}</div>
                     {% endfor %}
                 </div>
-            {% endif %}
-            <form method="post">
+            {% endif %} {% endcomment %}
+            
+            <form method="post" class="needs-validation" novalidate>
                 {% csrf_token %}
-                <div class="mb-3">
-                    <label for="{{ form.size.id_for_label }}" class="form-label">Size</label>
-                    {{ form.size }}
-                    {% if form.size.errors %}
-                        <div class="text-red-500 text-sm mt-1">
-                            {{ form.size.errors }}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            {{ form.size }}
+                            <label for="{{ form.size.id_for_label }}">Size</label>
+                            {% if form.size.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.size.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
-                    {% endif %}
-                </div>
-                <div class="mb-3">
-                    <label for="{{ form.variant_price.id_for_label }}" class="form-label">Price</label>
-                    {{ form.variant_price }}
-                    {% if form.variant_price.errors %}
-                        <div class="text-red-500 text-sm mt-1">
-                            {{ form.variant_price.errors }}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            {{ form.variant_price }}
+                            <label for="{{ form.variant_price.id_for_label }}">Price</label>
+                            {% if form.variant_price.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.variant_price.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
-                    {% endif %}
+                    </div>
                 </div>
-                <div class="mb-3">
-                    <label for="{{ form.variant_stock.id_for_label }}" class="form-label">Stock</label>
-                    {{ form.variant_stock }}
-                    {% if form.variant_stock.errors %}
-                        <div class="text-red-500 text-sm mt-1">
-                            {{ form.variant_stock.errors }}
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            {{ form.variant_stock }}
+                            <label for="{{ form.variant_stock.id_for_label }}">Stock</label>
+                            {% if form.variant_stock.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.variant_stock.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
-                    {% endif %}
-                </div>
-                <div class="mb-3">
-                    <label for="{{ form.discount_percentage.id_for_label }}" class="form-label">Discount Percentage</label>
-                    {{ form.discount_percentage }}
-                    {% if form.discount_percentage.errors %}
-                        <div class="text-red-500 text-sm mt-1">
-                            {{ form.discount_percentage.errors }}
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-floating mb-3">
+                            {{ form.discount_percentage }}
+                            <label for="{{ form.discount_percentage.id_for_label }}">Discount Percentage</label>
+                            {% if form.discount_percentage.errors %}
+                                <div class="invalid-feedback">
+                                    {% for error in form.discount_percentage.errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
-                    {% endif %}
+                    </div>
                 </div>
-                <div class="mb-3 form-check">
+                <div class="form-check form-switch mb-3">
                     {{ form.variant_status }}
                     <label class="form-check-label" for="{{ form.variant_status.id_for_label }}">Active</label>
                 </div>
-                <button type="submit" class="btn btn-primary">Create Variant</button>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="fas fa-save me-2"></i>Create Variant
+                    </button>
+                </div>
             </form>
         </div>
     </div>
 </section>
+
+
+<style>
+    :root {
+        --primary-color: #4e73df;
+        --secondary-color: #1cc88a;
+        --background-color: #f8f9fc;
+        --surface-color: #ffffff;
+        --on-surface-color: #5a5c69;
+        --error-color: #e74a3b;
+    }
+
+    body {
+        background-color: var(--background-color);
+        color: var(--on-surface-color);
+        font-size: 16px;
+    }
+
+    .content-main {
+        padding: 2rem;
+    }
+
+    .content-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+
+    .content-title {
+        font-size: 1.75rem;
+        color: var(--primary-color);
+        font-weight: 700;
+    }
+
+    .card {
+        background-color: var(--surface-color);
+        border: none;
+        border-radius: 0.35rem;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15) !important;
+    }
+
+    .card-header {
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.85rem;
+        padding: 1rem 1.35rem;
+        margin-bottom: 0;
+        background-color: var(--primary-color);
+        border-bottom: 1px solid #e3e6f0;
+    }
+
+    .form-floating > label {
+        color: #6e707e;
+    }
+
+    .form-control:focus {
+        border-color: #bac8f3;
+        box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background-color: #2e59d9;
+        border-color: #2653d4;
+    }
+
+    .btn-outline-primary {
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        color: var(--surface-color);
+    }
+
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .invalid-feedback {
+        color: var(--error-color);
+    }
+
+</style>
+
+<script>
+    // Bootstrap form validation
+    (function () {
+        'use strict'
+        var forms = document.querySelectorAll('.needs-validation')
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+</script>
 {% endblock %}
