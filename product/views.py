@@ -13,15 +13,18 @@ from .forms import Productform
 from django.db.models import Prefetch, Min, Max
 from decimal import Decimal
 from django.template.loader import render_to_string
+from adminpanel.decorators import admin_required
 
 
+
+@admin_required
 def product_list(request):
     products = Product.objects.all().order_by('-created_at')
     context = {'products': products}
     return render(request, 'adminpart/product_list.html', context)
 
 
-
+@admin_required
 def create_product(request):
     if request.method == 'POST':
         form = Productform(request.POST, request.FILES)
@@ -39,7 +42,7 @@ def create_product(request):
     }
     return render(request, 'adminpart/product_create.html', context)
 
-
+@admin_required
 def upload_product_images(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     if request.method == 'POST':
@@ -52,6 +55,7 @@ def upload_product_images(request, product_id):
     context = {'product': product}
     return render(request, 'adminpart/product_image_upload.html', context)
 
+@admin_required
 def delete_image(request, image_id):
     image = get_object_or_404(ProductImage, id=image_id)
     product_id = image.product.id
@@ -59,6 +63,7 @@ def delete_image(request, image_id):
     messages.success(request, 'Image deleted successfully.')
     return redirect('product:product_detail', product_id=product_id)
 
+@admin_required
 def edit_product(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     if request.method == 'POST':
@@ -78,6 +83,7 @@ def edit_product(request, product_id):
     context = {'form': form,'product': product}
     return render(request, 'adminpart/product_edit.html', context)
 
+@admin_required
 def product_detail(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     product_images = ProductImage.objects.filter(product=product)
@@ -94,7 +100,7 @@ def product_detail(request, product_id):
     }
     return render(request, 'adminpart/product_detail.html', context)
 
-
+@admin_required
 def toggle_product(request, product_id):
     if request.method == 'POST':
         product = get_object_or_404(Product, id=product_id)
@@ -106,7 +112,7 @@ def toggle_product(request, product_id):
 
 
 
-
+@admin_required
 def create_variant(request, product_id):
     product = get_object_or_404(Product, id=product_id)
     
@@ -133,6 +139,7 @@ def create_variant(request, product_id):
     }
     return render(request, 'adminpart/variant/create_variant.html', context)
 
+@admin_required
 def edit_variant(request, variant_id):
     variant = get_object_or_404(ProductVariant, id=variant_id)
 
@@ -159,6 +166,7 @@ def edit_variant(request, variant_id):
     }
     return render(request, 'adminpart/variant/edit_variant.html', context)
 
+@admin_required
 def variant_details(request,product_id):
     product = get_object_or_404(Product,id =product_id)
     
@@ -170,6 +178,7 @@ def variant_details(request,product_id):
     
     return render (request, 'adminpart/variant/variant_details.html',context)
 
+@admin_required
 def toggle_variant_status(request,variant_id):
     variant = get_object_or_404(ProductVariant, id=variant_id)
     variant.variant_status = not variant.variant_status
@@ -178,6 +187,7 @@ def toggle_variant_status(request,variant_id):
     messages.success(request,f'Variant {status} successfully.')
     return redirect('product:variant_details', product_id=variant.product.id)
 
+@admin_required
 def delete_variant(request,variant_id):
     variant = get_object_or_404(ProductVariant,id = variant_id)
     variant.variant_status = False
@@ -185,7 +195,7 @@ def delete_variant(request,variant_id):
     messages.success(request, 'Variant deleted successfully.')
     return redirect('product:variant_details', product_id = variant.product.id)
 
-
+@admin_required
 def restore_variant(request,variant_id):
     variant = get_object_or_404(ProductVariant, id = variant_id)
     variant.variant_status = True

@@ -4,8 +4,10 @@ from .forms import Categoryforms
 from django.contrib import messages
 from django.views.generic import ListView
 from django.core.paginator import Paginator
+from adminpanel.decorators import admin_required
 
 
+@admin_required
 def category_list(request):
     categories = Category.objects.all().order_by('id')
     per_page = 10
@@ -14,6 +16,7 @@ def category_list(request):
     page_obj = paginator.get_page(page_number)
     return render(request, 'adminpart/category_list.html',{'page_obj':page_obj})
 
+@admin_required
 def create_category(request):
     if request.method == 'POST':
         form = Categoryforms(request.POST, request.FILES)
@@ -30,6 +33,7 @@ def create_category(request):
         form = Categoryforms()
     return render(request, 'adminpart/create_category.html',{'form':form})
 
+@admin_required
 def edit_category(request,category_id):
     category = get_object_or_404(Category,id =category_id)
     if request.method == 'POST':
@@ -46,13 +50,14 @@ def edit_category(request,category_id):
         form = Categoryforms(instance=category)
     return render (request,'adminpart/category_update.html',{'form':form})
 
+@admin_required
 def delete_category(request,category_id):
     if request.method == 'POST':
         category = get_object_or_404(Category,id =category_id)
         category.is_listed = not category.is_listed
         category.save()
         return redirect('category:category_list')
-
+@admin_required
 def toggle_category_listing(request,category_id):
     category = get_object_or_404(Category, id = category_id)
     category.is_listed = not category.is_listed

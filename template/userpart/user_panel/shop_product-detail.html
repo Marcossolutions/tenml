@@ -262,7 +262,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <script>
-    let selectedVariantId = null;
+let selectedVariantId = null;
 const addToCartBtn = document.getElementById('add-to-cart-btn');
 const addToCartForm = document.getElementById('add-to-cart-form');
 
@@ -532,19 +532,36 @@ const variantIdInput = document.getElementById('variant-id');
 
 variantButtons.forEach(button => {
     button.addEventListener('click', function() {
-        const price = this.getAttribute('data-variant-price');
+        const price = parseFloat(this.getAttribute('data-variant-price')).toFixed(2);
         const stock = this.getAttribute('data-variant-stock');
-        const discount = this.getAttribute('data-variant-discount');
-        const discountedPrice = this.getAttribute('data-variant-discounted-price');
-        
-        // Update price, stock, discount, and discounted price display
-        priceDisplay.innerHTML = `Price: ₹ <span class="line-through">${price}</span>`;
-        stockDisplay.textContent = `Stock: ${stock} units`;
-        discountDisplay.textContent = `Discount: ${parseInt(discount)}%`; // Display discount as an integer
-        discountedPriceDisplay.textContent = `Discounted Price: ₹${parseFloat(discountedPrice).toFixed(2)}`;
+        const discount = parseFloat(this.getAttribute('data-variant-discount'));
+        const discountedPrice = parseFloat(this.getAttribute('data-variant-discounted-price')).toFixed(2);
 
 
+        // Update stock display
+         stockDisplay.textContent = `Stock: ${stock} units`;
         
+        // Check if the variant has a discount
+        if (discount > 0) {
+            // Display price with line-through
+            priceDisplay.innerHTML = `Price: ₹ <span class="line-through">${price}</span>`;
+            
+            // Show discount and discounted price
+            discountDisplay.style.display = 'block';
+            discountedPriceDisplay.style.display = 'block';
+            discountDisplay.textContent = `Discount: ${parseInt(discount)}%`; // Display discount as an integer
+            discountedPriceDisplay.textContent = `Discounted Price: ₹${discountedPrice}`;
+        } else {
+            // Display price without line-through
+            priceDisplay.innerHTML = `Price: ₹${price}`;
+            
+            // Hide discount and discounted price elements
+            discountDisplay.style.display = 'none';
+            discountedPriceDisplay.style.display = 'none';
+        }
+        
+       
+
         // Update hidden input with selected variant ID
         variantIdInput.value = this.getAttribute('data-variant-id');
     });

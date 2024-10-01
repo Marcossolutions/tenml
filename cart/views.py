@@ -163,18 +163,45 @@ def checkout(request):
 
 @login_required(login_url='/login/')
 def add_address_checkout(request):
-    if request.method =='POST':
-        form =UserAddressForm(request.POST)
+    user = request.user
+
+    # Handle cart_item_ids from POST if it's available, otherwise fallback to GET
+    if request.method == 'POST':
+        cart_item_ids = request.POST.get('cart_item_ids', '')
+    else:
+        cart_item_ids = request.GET.get('cart_items', '')
+
+    # If cart_item_ids are empty, redirect to cart
+    if not cart_item_ids:
+        messages.error(request, "No items selected. Please select items before proceeding to checkout.")
+        return redirect('cart:cart_view')
+    
+    # If cart_item_ids exist, split into a list (comma-separated)
+    cart_item_ids_list = cart_item_ids.split(',')
+
+    if request.method == 'POST':
+        form = UserAddressForm(request.POST)
         if form.is_valid():
-            address= form.save(commit=False)
-            address.user = request.user
+            address = form.save(commit=False)
+            address.user = user
+
+            # Ensure only one default address is active
             if address.status:
-                UserAddress.objects.filter(user=request.user,status=True).update(status=False)
+                UserAddress.objects.filter(user=user, status=True).update(status=False)
+
             address.save()
-            return redirect('cart:checkout')
+
+            # Redirect back to checkout with cart item IDs
+            return redirect(f'/cart/checkout/?cart_items={",".join(cart_item_ids_list)}')
     else:
         form = UserAddressForm()
-    return render(request,'userpart/user_interface/add_address.html',{'form':form})
+
+    # Render form with cart_item_ids in the hidden input
+    return render(request, 'userpart/user_interface/add_address.html', {
+        'form': form,
+        'cart_items': ','.join(cart_item_ids_list)
+    })
+
 
 
 

@@ -29,6 +29,9 @@ urlpatterns = [
     path('userpanel/',include('userpanel.urls')),
     path('orders/',include('orders.urls')),
     path('coupon/',include('coupon.urls')),
+    path('oauth/', include('social_django.urls', namespace='social')),
+    
+    
 ]
 
 if settings.DEBUG:

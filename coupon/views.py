@@ -7,12 +7,16 @@ import string
 import random
 from cart.models import CartItem
 from django.views.decorators.http import require_POST
+from adminpanel.decorators import admin_required
 
+
+@admin_required
 def coupon_list(request):
     coupons= Coupon.objects.all().order_by('-created_at')
     context= {'coupons':coupons}
     return render(request,'adminpart/coupon_list.html',context)
 
+@admin_required
 def create_coupon(request):
     if request.method =='POST':
         form = CouponForm(request.POST)
@@ -26,13 +30,15 @@ def create_coupon(request):
     context= {'form':form, 'action':'Create'}
     return render(request, 'adminpart/create_coupon.html',context)
 
+@admin_required
 def generate_coupon_code(request):
     if request.method == 'GET':
         length=8
         characters = string.ascii_uppercase + string.digits
         coupon_code = ''.join(random.choice(characters) for _ in range(length))
         return JsonResponse({'coupon_code':coupon_code})
-    
+
+@admin_required    
 def edit_coupon(request,coupon_id):
     coupon= get_object_or_404(Coupon,id=coupon_id)
     if request.method=='POST':
@@ -47,6 +53,7 @@ def edit_coupon(request,coupon_id):
     return render(request,'adminpart/edit_coupon.html',context)
         
 
+@admin_required
 def toggle_coupon(request,coupon_id):
     coupon= get_object_or_404(Coupon,id=coupon_id)
     coupon.status = not coupon.status

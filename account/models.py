@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, Permis
 from django.utils import timezone
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, email, phone_number, password=None, confirm_password=None):
+    def create_user(self, username, email, phone_number=None, password=None, confirm_password=None):
         if not email:
             raise ValueError('User must have an email address')
         if password != confirm_password:
@@ -30,7 +30,7 @@ class UserManager(BaseUserManager):
 class User(AbstractBaseUser, PermissionsMixin):
     username = models.CharField(max_length=150, unique=True)
     email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=15)
+    phone_number = models.CharField(max_length=15,null=True)
     is_active = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)

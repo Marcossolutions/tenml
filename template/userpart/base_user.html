@@ -31,9 +31,9 @@
                 font-family: "Noto Sans", sans-serif;
             }
         .site-header, .site-footer {
-            background-color: #e4e1d8 !important;
+            background: linear-gradient(to right, #fbcfe8, #e9d4fe) !important;
             color: #212121 !important;
-            padding: 1rem;
+            padding: 0.75rem;
         }
         .site-content {
             flex: 1;
@@ -44,64 +44,72 @@
 </head>
 
 <body>
-    <header class="site-header  bg-[#e4e1d8] flex items-center justify-between py-1 px-4">
-        <img class="w-[64px] h-[64px] rounded-full" src="../assets/beerlogo.png" alt="">
-        <nav class="flex font-bold ml-8 text-nowrap gap-4">
-            <a href="{% url 'home' %}" >Home</a>
-            <p>Join Seller</p>
-            <a href="{% url 'product:shop_page' %}">Products</a>
-            <p>Blog</p>
-            <a href="{% url 'product:shop_page' %}">Shop</a>
-            <p>Contact</p>
-        </nav>
-        <div class="flex justify-center items-center text-black h-[40px] w-full">
-            <input type="text" class="w-full p-2 rounded-l-md onfocus:border-none outline-none ml-4"
-                placeholder="Search">
-            <div class="bg-gray-900 flex justify-center items-center h-full px-2 rounded-r-md">
-                <span class="material-symbols-outlined text-white ">
-                    search
-                </span>
-            </div>
+    <header class="site-header bg-gradient-to-r from-[#fbcfe8] to-[#e9d4fe] flex items-center justify-between py-3 px-6 shadow-md">
+        <!-- Logo and Navigation on the Left -->
+        <div class="flex items-center space-x-10">
+            <img class="w-20 h-20 rounded-full shadow-lg" src="{% static 'userside/assets/imgs/theme/ten-ml.png' %}" alt="Logo">
+            <nav class="flex font-bold text-lg space-x-10">
+                <a href="{% url 'home' %}" class="hover:text-purple-700 transition duration-300">Home</a>
+                <p class="cursor-pointer hover:text-purple-700 transition duration-300">Join Seller</p>
+                <a href="{% url 'product:shop_page' %}" class="hover:text-purple-700 transition duration-300">Products</a>
+                <p class="cursor-pointer hover:text-purple-700 transition duration-300">Blog</p>
+                <a href="{% url 'product:shop_page' %}" class="hover:text-purple-700 transition duration-300">Shop</a>
+                <p class="cursor-pointer hover:text-purple-700 transition duration-300">Contact</p>
+            </nav>
         </div>
-        <div class="flex">
-            <div class="flex ml-4">
-                <a href="{% url 'cart:cart_view' %}" class="flex items-center">
-                    <span class="material-symbols-outlined">shopping_cart</span>
-                </a>
-            </div>
-            
-            <div class="flex ml-4">
-                {% if user.is_authenticated %}
-                    <a href="{% url 'signout' %}" class="flex items-center">
-                        <p>Logout</p>
-                        <span class="material-symbols-outlined">logout</span>
-                    </a>
-                {% else %}
-                    <a href="{% url 'login_page' %}" class="flex items-center">
-                        <p>Login</p>
-                        <span class="material-symbols-outlined">login</span>
-                    </a>
-                {% endif %}
-            </div>
-            <div class="flex ml-4">
-                <a href="{% url 'userpanel:wishlist' %}" class="flex items-center text-white hover:text-gray-300">
-                    <p class="mr-2" style="color: black;">Wishlist</p>
-                    <span class="material-symbols-outlined" style="color: red;">
-                        favorite
+        
+        <!-- User options (Cart, Wishlist, Logout, etc.) on the Right -->
+        <div class="flex font-bold text-lg items-center space-x-6">
+            <!-- Cart Icon with Count -->
+            <a href="{% url 'cart:cart_view' %}" class="flex items-center hover:text-purple-700 transition duration-300 relative">
+                <span class="material-symbols-outlined text-3xl">shopping_cart</span>
+                {% if cart_count > 0 %}
+                    <span class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+                        {{ cart_count }}
                     </span>
-                </a>
-            </div>
+                {% endif %}
+            </a>
             
-            <a href="">
-            <div class="flex ml-4">
-                <a href="{% url 'userpanel:view_profile'  %}">{{ user.username }}</a>
-                <span class="material-symbols-outlined">
-                    person
-                </span>
-            </div>
+            <!-- Wishlist Icon with Count -->
+            <a href="{% url 'userpanel:wishlist' %}" class="flex items-center hover:text-purple-700 transition duration-300 relative">
+                <p class="mr-2"></p>
+                <span class="material-symbols-outlined text-3xl" style="color: red;">favorite</span>
+                {% if wishlist_count > 0 %}
+                    <span class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full text-xs w-5 h-5 flex items-center justify-center">
+                        {{ wishlist_count }}
+                    </span>
+                {% endif %}
+            </a>
+            
+            <!-- Logout/Login/Profile options -->
+            {% if user.is_authenticated %}
+                <a href="{% url 'signout' %}" class="flex items-center hover:text-purple-700 transition duration-300">
+                    <p class="mr-2">Logout</p>
+                    <span class="material-symbols-outlined text-3xl">logout</span>
+                </a>
+            {% else %}
+                <a href="{% url 'login_page' %}" class="flex items-center hover:text-purple-700 transition duration-300">
+                    <p class="mr-2">Login</p>
+                    <span class="material-symbols-outlined text-3xl">login</span>
+                </a>
+            {% endif %}
+            <a href="{% url 'userpanel:view_profile' %}" class="flex items-center hover:text-purple-700 transition duration-300">
+                <p class="mr-2">{{ user.username }}</p>
+                <span class="material-symbols-outlined text-3xl">person</span>
             </a>
         </div>
     </header>
+    
+
+    <style>
+        .material-symbols-outlined {
+          font-variation-settings:
+          'FILL' 0,
+          'wght' 400,
+          'GRAD' 0,
+          'opsz' 48
+        }
+    </style>
     
     {% block content %}
         
@@ -151,9 +159,9 @@
         <div class="col-start-10">
             <h1 class="text-lg font-extrabold">Follow Us</h1>
             <div class="flex gap-2">
-                <img class="h-[32px] w-[32px]" src="userside/images/instagram.png" alt="instagram">
-                <img class="h-[32px] w-[32px]" src="userside/images/facebook.png" alt="facebook">
-                <img class="h-[32px] w-[32px]" src="userside/images/twitter.png" alt="twitter">
+                <img class="h-[32px] w-[32px]" src="{% static 'userside/assets/imgs/theme/instagram.png' %}" alt="instagram">
+                <img class="h-[32px] w-[32px]" src="{% static 'userside/assets/imgs/theme/facebook.png' %}" alt="facebook">
+                <img class="h-[32px] w-[32px]" src="{% static 'userside/assets/imgs/theme/twitter.png' %}" alt="twitter">
             </div>
         </div>
     </footer>

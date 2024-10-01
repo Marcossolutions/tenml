@@ -1,7 +1,7 @@
 from django.db import models
 from category.models import Category
 from account.models import User
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 
 class Product(models.Model):
     product_name = models.CharField(max_length=100, null=False)
@@ -31,8 +31,8 @@ class ProductVariant(models.Model):
     def get_discounted_amount(self):
         if self.discount_percentage and self.variant_price:
             discount_amount = (self.variant_price * self.discount_percentage) / Decimal(100)
-            return self.variant_price - discount_amount
-        return self.variant_price
+            return (self.variant_price - discount_amount).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        return self.variant_price.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
     
     
 class ProductImage(models.Model):

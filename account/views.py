@@ -17,7 +17,13 @@ from .signals import user_registered
 from django.contrib.auth.views import PasswordResetView,PasswordResetDoneView,PasswordResetConfirmView,PasswordResetCompleteView
 from .forms import CustomPasswordResetForm
 from django.urls import reverse_lazy
-
+import logging
+from django.template.loader import render_to_string
+from django.shortcuts import render
+from django.core.exceptions import ObjectDoesNotExist
+from django.db.models import Prefetch
+from category.models import Category
+from product.models import Product, ProductVariant
 
 
 def index(request):
@@ -38,6 +44,10 @@ def signup(request):
             )
             
             return redirect('verify_otp')
+        else:
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field.capitalize()}: {error}")
     else:
         if 'user_data ' in request.session:
             del request.session['user_data']
@@ -122,11 +132,7 @@ def login_page(request):
 
 
 
-from django.shortcuts import render
-from django.core.exceptions import ObjectDoesNotExist
-from django.db.models import Prefetch
-from category.models import Category
-from product.models import Product, ProductVariant
+
 
 def home(request):
     try:
@@ -156,6 +162,7 @@ def signout(request):
     logout(request)
     messages.success(request, "You have successfully logged out.")
     return redirect('home')
+
 
 class CustomPasswordResetView(PasswordResetView):
     form_class = CustomPasswordResetForm

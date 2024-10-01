@@ -6,6 +6,7 @@ from django.contrib.auth.password_validation import validate_password
 from .models import User
 from django.contrib.auth.forms import PasswordResetForm
 from django.contrib.auth import get_user_model
+import re
 
 class UserRegistrationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput)
@@ -19,18 +20,38 @@ class UserRegistrationForm(forms.ModelForm):
         username = self.cleaned_data.get('username')
         if User.objects.filter(username=username).exists():
             raise ValidationError("Username already exists")
+        if len(username) < 4:
+            raise ValidationError("Username must be at least 4 characters long")
+        if not re.match(r'^(?!_+$)[a-zA-Z0-9_]+$', username):
+            raise ValidationError("Username can only contain letters, numbers, underscores and cannot consist solely of underscores.")
         return username
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if User.objects.filter(email=email).exists():
             raise ValidationError("Email already registered")
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
+            raise ValidationError("Invalid email format")
         return email
+    
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data.get('phone_number')
+        if not re.match(r'^\+?1?\d{9,15}$', phone_number):
+            raise ValidationError("Invalid phone number format")
+        return phone_number
+
 
     def clean_password(self):
         password = self.cleaned_data.get('password')
         validate_password(password)
+        if not re.search(r'[A-Z]', password):
+            raise ValidationError("Password must contain at least one uppercase letter.")
+        if not re.search(r'[a-z]', password):
+            raise ValidationError("Password must contain at least one lowercase letter.")
+        if not re.search(r'[0-9]', password):
+            raise ValidationError("Password must contain at least one digit.")
         return password
+        
 
     def clean(self):
         cleaned_data = super().clean()

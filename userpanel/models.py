@@ -17,10 +17,10 @@ class UserAddress(models.Model):
     pin_number = models.IntegerField(null=False)
     district = models.CharField(max_length=100, null=False)
     state = models.CharField(max_length=100, null=False)
-    country = models.CharField(max_length=50, null=False, default="null")
+    country = models.CharField(max_length=50, null=False, default="India")
     phone_number = models.CharField(max_length=50, null=False)
     status = models.BooleanField(default=False)
-    is_deleted =models.BooleanField(default=True)
+    is_deleted =models.BooleanField(default=False)
     
     def __str__(self):
         return f'{self.name},{self.house_name},{self.street_name},{self.district},{self.state},{self.country}'

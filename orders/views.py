@@ -17,29 +17,30 @@ from django.db import transaction
 from coupon.models import Coupon,UserCoupon
 from orders.models import ReturnRequest
 from django.db.models import Q
+from adminpanel.decorators import admin_required
 # Create your views here.
 
 
 
 @login_required
 def place_order(request):
-    if request.method != 'POST':
-        return redirect('cart:checkout')
-    
     user = request.user
     cart_item_ids = request.POST.get('cart_item_ids', '').split(',')
     address_id = request.POST.get('address_id')
     payment_method = request.POST.get('payment_method')
     
+    cart_item_ids_str = ','.join(cart_item_ids) 
+    
+    
     if not cart_item_ids or not address_id or not payment_method:
         messages.error(request, "Invalid order data. Please try again.")
-        return redirect('cart:checkout')
+        return redirect(f'/cart/checkout/?cart_items={cart_item_ids_str}')
     
     try:
         user_address = UserAddress.objects.get(id=address_id, user=user)
     except UserAddress.DoesNotExist:
         messages.error(request, "Selected address is invalid.")
-        return redirect('cart:checkout')
+        return redirect(f'/cart/checkout/?cart_items={cart_item_ids_str}')
     
     order_address = OrderAddress.objects.create(
         user=user,
@@ -89,7 +90,7 @@ def place_order(request):
     # New condition: Check if the order is above Rs 1000 and payment method is Cash on Delivery
     if final_amount > Decimal('1000') and payment_method == 'Cash on Delivery':
         messages.error(request, "Cash on Delivery is not available for orders above Rs 1000. Please choose a different payment method.")
-        return redirect('cart:checkout')
+        return redirect(f'/cart/checkout/?cart_items={cart_item_ids_str}')
     
     # Wallet payment logic
     wallet, created = Wallet.objects.get_or_create(user=user,defaults={'balance': Decimal('0.00')})
@@ -304,7 +305,7 @@ def payment_failed(request):
 
 
  # Admin side order maniulation and listing
-@staff_member_required
+@admin_required
 def admin_order_list(request):
     search_query = request.GET.get('search', '')
     status_filter = request.GET.get('status', 'Show all')
@@ -332,6 +333,7 @@ def admin_order_list(request):
     }
     return render(request, 'adminpart/admin_order_list.html', context)
 
+@admin_required
 def admin_order_detail(request,order_id):
     order = get_object_or_404(OrderMain,id=order_id)
     order_items = OrderSub.objects.filter(main_order=order)
@@ -342,6 +344,7 @@ def admin_order_detail(request,order_id):
     }
     return render(request,'adminpart/admin_order_detail.html', context)
 
+@admin_required
 def change_order_status(request,order_id):
     order =get_object_or_404(OrderMain,id=order_id)
     if request.method == 'POST':
@@ -393,6 +396,7 @@ def change_order_status(request,order_id):
 
 
 @staff_member_required
+@admin_required
 def admin_return_requests(request):
     search_query = request.GET.get('search', '')
     items_per_page = int(request.GET.get('items_per_page', 10))
@@ -416,6 +420,7 @@ def admin_return_requests(request):
     }
     return render(request, 'adminpart/return_requests_list.html', context)
 
+@admin_required
 @staff_member_required
 def handle_return_request(request,request_id):
     return_request = get_object_or_404(ReturnRequest,id=request_id)
@@ -448,9 +453,10 @@ def handle_return_request(request,request_id):
                             description=f"Refund for order {order.order_id}",
                             transaction_type = "CREDIT"
                         )
-                        messages.success(request,f"Return request approved and ₹{refund_amount} credited to the user\'s wallet.")
+                        response_data['message'] = f"Return request approved and ₹{refund_amount} credited to the user\'s wallet."
                     else:
-                        messages.success(request,"Return request approved. No payment was made or payment status is not confirmed.")
+                        response_data['message'] = "Return request approved. No payment was made or payment status is not confirmed."
+
                 
                 elif action =='reject':
                     return_request.status ="Rejected"
@@ -460,7 +466,7 @@ def handle_return_request(request,request_id):
                     order.order_status ="Return Rejected"
                     order.save()
                     
-                    messages.success(request,"Return request rejected.")
+                    response_data['message'] = "Return request rejected."
                 
                 else:
                     response_data['message'] = "Invalid action."

@@ -31,7 +31,7 @@ from io import BytesIO
 def view_profile(request):
     user_profile,created = UserProfile.objects.get_or_create(user=request.user)
     
-    addresses = UserAddress.objects.filter(user =request.user,is_deleted=False)
+    addresses = UserAddress.objects.filter(user =request.user)
     addresses_count = addresses.count()
     address_paginator= Paginator(addresses,3)
     address_page = request.GET.get('address_page')
@@ -61,30 +61,72 @@ def view_profile(request):
     }
     return render(request,'userpart/user_interface/view_profile.html',context)
 
+
+
 @login_required(login_url='/login/')
-def edit_profile (request):
-    
+def change_password(request):
+    password_form = CustomPasswordChangeForm(request.user)  # Initialize the form
+
     if request.method == 'POST':
-        if 'update_profile' in request.POST:
-            form = EditUserProfileForm(request.POST, instance=request.user)
-            if form.is_valid():
-                form.save()
-                messages.success(request,"Your profile was successfully updated.")
-                return redirect('userpanel:view_profile')
+        password_form = CustomPasswordChangeForm(request.user, request.POST)  # Re-initialize with POST data
+        if password_form.is_valid():
+            user = password_form.save()
+            update_session_auth_hash(request, user)  # Prevent user logout
+            messages.success(request, "Your password was successfully updated!")
+            return redirect('userpanel:view_profile')
+        else:
+            # Add error messages only if the form is invalid
+            for field, errors in password_form.errors.items():
+                for error in errors:
+                    messages.error(request, f"{field.capitalize()}: {error}")
+    
+    # Render the form regardless of errors on GET requests or invalid POST requests
+    return render(request, 'userpart/user_interface/change_password.html', {'password_form': password_form})
+
+
+@login_required(login_url='/login/')
+def edit_profile(request):
+    
+    if request.method == 'POST':  
+        form = EditUserProfileForm(request.POST, instance=request.user)
+
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Your profile was successfully updated.")
+            return redirect('userpanel:view_profile')  
+        else:
             
-        elif 'change_password' in request.POST:
-            password_form = CustomPasswordChangeForm(request.user,request.POST)
-            if password_form.is_valid():
-                user=password_form.save()
-                update_session_auth_hash(request,user)
-                messages.success(request,"Youer password was successfully updated!")
-                return redirect('userpanel:view_profile')
+            messages.error(request, "There was an error updating your profile. Please check below.")    
+    else:
+       
+        form = EditUserProfileForm(instance=request.user)
+ 
+    return render(request, 'userpart/user_interface/edit_profile.html', {'form': form})
+
+# @login_required(login_url='/login/')
+# def edit_profile (request):
+    
+#     if request.method == 'POST':
+#         if 'update_profile' in request.POST:
+#             form = EditUserProfileForm(request.POST, instance=request.user)
+#             if form.is_valid():
+#                 form.save()
+#                 messages.success(request,"Your profile was successfully updated.")
+#                 return redirect('userpanel:view_profile')
+            
+#         elif 'change_password' in request.POST:
+#             password_form = CustomPasswordChangeForm(request.user,request.POST)
+#             if password_form.is_valid():
+#                 user=password_form.save()
+#                 update_session_auth_hash(request,user)
+#                 messages.success(request,"Youer password was successfully updated!")
+#                 return redirect('userpanel:view_profile')
         
     
-    form = EditUserProfileForm(instance=request.user)
-    password_form = CustomPasswordChangeForm(request.user)
+#     form = EditUserProfileForm(instance=request.user)
+#     password_form = CustomPasswordChangeForm(request.user)
         
-    return render(request,'userpart/user_interface/edit_profile.html',{'form':form, 'password_form':password_form})
+#     return render(request,'userpart/user_interface/edit_profile.html',{'form':form, 'password_form':password_form})
 
 @login_required(login_url='/login/')
 def add_address(request):
@@ -96,7 +138,10 @@ def add_address(request):
             if address.status:
                 UserAddress.objects.filter(user=request.user,status=True).update(status=False)
             address.save()
+            messages.success(request, "Address added successfully!")
             return redirect('userpanel:view_profile')
+        else:
+            messages.error(request, "Please correct the errors below.")
     else:
         form = UserAddressForm()
     return render(request,'userpart/user_interface/add_address.html',{'form':form})
@@ -111,7 +156,10 @@ def edit_address(request,address_id):
             if address.status:
                 UserAddress.objects.filter(user=request.user, status =True).exclude(id=address.id).update(status=False)
             address.save()
+            messages.success(request, "Address added successfully!")
             return redirect('userpanel:view_profile')
+        else:
+            messages.error(request, "Please correct the errors below.")
     else:
         form = UserAddressForm(instance=address)
     return render(request, 'userpart/user_interface/edit_address.html',{'form':form})

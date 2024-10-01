@@ -7,6 +7,24 @@
     <title>ten-ml Signup</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        form input[type="text"], 
+        form input[type="email"], 
+        form input[type="password"] {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 9999px;
+            border: 2px solid #d8b4fe;
+            transition: border-color 0.3s ease;
+        }
+
+        form input[type="text"]:focus, 
+        form input[type="email"]:focus, 
+        form input[type="password"]:focus {
+            outline: none;
+            border-color: #a855f7;
+        }
+    </style>
 </head>
 <body class="bg-gradient-to-r from-pink-200 to-purple-200 flex items-center justify-center min-h-screen font-['Poppins']">
     <div class="bg-white p-6 rounded-3xl shadow-2xl w-full max-w-md transform hover:scale-105 transition-transform duration-300">
@@ -67,23 +85,30 @@
         </form>
     </div>
 
-    <style>
-        form input[type="text"], 
-        form input[type="email"], 
-        form input[type="password"] {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border-radius: 9999px;
-            border: 2px solid #d8b4fe;
-            transition: border-color 0.3s ease;
-        }
 
-        form input[type="text"]:focus, 
-        form input[type="email"]:focus, 
-        form input[type="password"]:focus {
-            outline: none;
-            border-color: #a855f7;
-        }
-    </style>
 </body>
+<script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        {% if messages %}
+            const messages = [
+                {% for message in messages %}
+                    {
+                        level: "{{ message.tags }}",
+                        text: "{{ message }}"
+                    },
+                {% endfor %}
+            ];
+            messages.forEach(message => {
+                Swal.fire({
+                    toast: true,
+                    position: 'top-right',
+                    icon: message.level === 'success' ? 'success' : 'error',
+                    title: message.text,
+                    showConfirmButton: false,
+                    timer: 3000
+                });
+            });
+        {% endif %}
+    });
+</script>
 </html>

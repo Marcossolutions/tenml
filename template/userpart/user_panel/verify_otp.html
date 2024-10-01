@@ -8,6 +8,35 @@
     <title>ten-ml OTP Verification</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Style for form inputs */
+        form input[type="text"], 
+        form input[type="email"], 
+        form input[type="password"], 
+        form input[type="number"] { /* Added number type for OTP */
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border-radius: 9999px;
+            border: 2px solid #d8b4fe;
+            transition: border-color 0.3s ease;
+        }
+
+        form input[type="text"]:focus, 
+        form input[type="email"]:focus, 
+        form input[type="password"]:focus, 
+        form input[type="number"]:focus { /* Added number type for OTP */
+            outline: none;
+            border-color: #a855f7;
+        }
+
+        form label {
+            margin-bottom: 0.5rem;
+            color: #4a5568; /* text-gray-700 */
+            font-size: 0.875rem; /* text-sm */
+            font-weight: 500; /* font-medium */
+        }
+    </style>
 </head>
 
 <body class="bg-gradient-to-r from-pink-200 to-purple-200 flex items-center justify-center min-h-screen font-['Poppins']">
@@ -43,70 +72,88 @@
         </div>
     </div>
 
-    <style>
-        /* Style for form inputs */
-        form input[type="text"], 
-        form input[type="email"], 
-        form input[type="password"], 
-        form input[type="number"] { /* Added number type for OTP */
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border-radius: 9999px;
-            border: 2px solid #d8b4fe;
-            transition: border-color 0.3s ease;
-        }
-
-        form input[type="text"]:focus, 
-        form input[type="email"]:focus, 
-        form input[type="password"]:focus, 
-        form input[type="number"]:focus { /* Added number type for OTP */
-            outline: none;
-            border-color: #a855f7;
-        }
-
-        form label {
-            margin-bottom: 0.5rem;
-            color: #4a5568; /* text-gray-700 */
-            font-size: 0.875rem; /* text-sm */
-            font-weight: 500; /* font-medium */
-        }
-    </style>
-
+   
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', (event) => {
+            {% if messages %}
+                const messages = [
+                    {% for message in messages %}
+                        {
+                            level: "{{ message.tags }}",
+                            text: "{{ message }}"
+                        },
+                    {% endfor %}
+                ];
+                messages.forEach(message => {
+                    Swal.fire({
+                        toast: true,
+                        position: 'top-right',
+                        icon: message.level === 'success' ? 'success' : 'error',
+                        title: message.text,
+                        showConfirmButton: false,
+                        timer: 3000
+                    });
+                });
+            {% endif %}
+        });
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const otpTimerDuration = 120000; // 2 minutes in milliseconds
             const timerElement = document.getElementById('otp-timer');
             const resendButton = document.getElementById('resend-otp');
             const verifyButton = document.getElementById('verify-otp');
-
+            const otpInputContainer = document.querySelector('form'); // Container of the OTP input field
+    
             function updateTimer() {
+                const expirationTime = parseInt(sessionStorage.getItem('otpExpirationTime'), 10);
                 const currentTime = new Date().getTime();
-                const startTime = parseInt(localStorage.getItem('otpStartTime'), 10);
-                let timeRemaining = Math.max(0, otpTimerDuration - (currentTime - startTime));
-
+                let timeRemaining = Math.max(0, expirationTime - currentTime);
+    
                 if (timeRemaining <= 0) {
-                    clearInterval(timerInterval);
                     timerElement.textContent = '00:00';
-                    resendButton.style.display = 'block';
-                    verifyButton.style.display = 'none';
-                    localStorage.removeItem('otpStartTime');
+                    otpInputContainer.style.display = 'none'; // Hide the input and verify button
+                    verifyButton.style.display = 'none'; // Hide verify button
+                    resendButton.style.display = 'block'; // Show the resend button
                 } else {
                     const minutes = Math.floor((timeRemaining % (1000 * 3600)) / (1000 * 60));
                     const seconds = Math.floor((timeRemaining % (1000 * 60)) / 1000);
                     timerElement.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-                    resendButton.style.display = 'none';
-                    verifyButton.style.display = 'block';
+    
+                    // Continue updating the timer every second
+                    setTimeout(updateTimer, 1000);
                 }
             }
-
+    
             function startTimer() {
-                const now = new Date().getTime();
-                localStorage.setItem('otpStartTime', now);
-                setInterval(updateTimer, 1000);
+                const expirationTime = new Date().getTime() + otpTimerDuration;
+                sessionStorage.setItem('otpExpirationTime', expirationTime);
+                otpInputContainer.style.display = 'block'; // Show the input and verify button
+                verifyButton.style.display = 'block';
+                resendButton.style.display = 'none'; // Hide resend button
+                updateTimer(); // Start the timer
             }
-
-            startTimer();
-
+    
+            // Check if the expiration time is already set in session storage
+            if (sessionStorage.getItem('otpExpirationTime')) {
+                const expirationTime = parseInt(sessionStorage.getItem('otpExpirationTime'), 10);
+                const currentTime = new Date().getTime();
+    
+                // If the expiration time is in the past, clear it
+                if (currentTime >= expirationTime) {
+                    sessionStorage.removeItem('otpExpirationTime');
+                    otpInputContainer.style.display = 'none'; // Hide the input and verify button
+                    verifyButton.style.display = 'none'; // Hide verify button
+                    resendButton.style.display = 'block'; // Show the resend button
+                    timerElement.textContent = '00:00'; // Reset timer display
+                } else {
+                    updateTimer(); // Update the timer based on the existing expiration time
+                }
+            } else {
+                startTimer(); // Start a new timer if there's no expiration time
+            }
+    
             resendButton.addEventListener('click', function () {
                 fetch('{% url "resend_otp" %}', {
                     method: 'POST',
@@ -117,17 +164,25 @@
                     body: JSON.stringify({})
                 }).then(response => {
                     if (response.ok) {
-                        startTimer();
+                        startTimer(); // Reset the timer when OTP is resent
+                    } else {
+                        // Handle error (e.g., display a message to the user)
+                        console.error('Failed to resend OTP');
                     }
                 });
             });
         });
     </script>
+    
+    
+    
+    
+    
 </body>
 
 </html>
 
-{% comment %} <script>
+ {% comment %}<script>
     document.addEventListener('DOMContentLoaded', function () {
         const otpTimerDuration = 120000; // 2 minutes in milliseconds
         const timerElement = document.getElementById('otp-timer');

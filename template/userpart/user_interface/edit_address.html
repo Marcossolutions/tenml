@@ -2,103 +2,192 @@
 {% load static %}
 
 {% block content %}
-<div class="container mx-auto mt-10 max-w-lg">
-    <div class="bg-[#e4e1d8] p-8 rounded-lg shadow-lg">
-        <h2 class="text-2xl font-semibold text-center">Edit Address</h2>
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
 
-        <form method="post" class="mt-8 space-y-6">
+    body, input, button, select {
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .input-field {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        border-radius: 9999px;
+        border: 2px solid #d8b4fe;
+        transition: border-color 0.3s ease;
+    }
+
+    .input-field:focus {
+        outline: none;
+        border-color: #a855f7;
+    }
+
+    .error-field {
+        color: #e3342f; /* Red color for errors */
+        font-size: 0.875rem; /* Text size for errors */
+        margin-top: 0.25rem;
+    }
+
+    .checkbox-field {
+        width: 1.25rem;
+        height: 1.25rem;
+        border-radius: 0.25rem;
+        border: 2px solid #d8b4fe;
+        transition: border-color 0.3s ease;
+    }
+
+    .checkbox-field:checked {
+        background-color: #a855f7;
+        border-color: #a855f7;
+    }
+
+    /* Additional Styling for Consistency */
+    .form-container {
+        position: relative;
+    }
+
+    .close-button {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        color: #6b7280; /* Tailwind's gray-500 */
+        transition: color 0.3s ease;
+    }
+
+    .close-button:hover {
+        color: #374151; /* Tailwind's gray-700 */
+    }
+
+    .submit-button {
+        background-image: linear-gradient(to right, #a855f7, #d946ef); /* Tailwind's purple-500 to pink-500 */
+        color: #fff;
+        padding: 0.75rem 1.5rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        transition: opacity 0.3s ease;
+    }
+
+    .submit-button:hover {
+        opacity: 0.9;
+    }
+</style>
+
+<div class="bg-gradient-to-r from-pink-200 to-purple-200 flex items-center justify-center min-h-screen px-4 sm:px-6 lg:px-8">
+    <div class="bg-white p-8 rounded-3xl shadow-2xl w-full max-w-2xl transform hover:scale-105 transition-transform duration-300 relative form-container">
+        <!-- Close Button -->
+        <a href="{% url 'userpanel:view_profile' %}" class="close-button">
+            <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </a>
+
+        <div class="text-center mb-4">
+            <h2 class="text-4xl font-bold text-purple-600 mb-2">Edit Address</h2>
+            <p class="text-gray-500">Please update your address details</p>
+        </div>
+
+        <form method="POST" class="space-y-6">
             {% csrf_token %}
-            <div class="space-y-4">
-                <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700">Full Name</label>
-                    <input type="text" name="name" id="name" value="{{ form.name.value }}" required
-                        class="mt-1 px-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    {% if form.name.errors %}
-                    <p class="text-red-500 text-xs italic mt-2">{{ form.name.errors }}</p>
-                    {% endif %}
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Left Column -->
+                <div class="space-y-4">
+                    <!-- Full Name -->
+                    <div>
+                        <label for="name" class="block text-gray-700 text-sm font-medium mb-2">Full Name</label>
+                        <input type="text" id="name" name="name" class="input-field" value="{{ form.name.value|default_if_none:'' }}" placeholder="John Doe">
+                        {% if form.name.errors %}
+                            <p class="error-field">{{ form.name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- House Name -->
+                    <div>
+                        <label for="house_name" class="block text-gray-700 text-sm font-medium mb-2">House Name</label>
+                        <input type="text" id="house_name" name="house_name" class="input-field" value="{{ form.house_name.value|default_if_none:'' }}" placeholder="House Name">
+                        {% if form.house_name.errors %}
+                            <p class="error-field">{{ form.house_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Street Name -->
+                    <div>
+                        <label for="street_name" class="block text-gray-700 text-sm font-medium mb-2">Street Name</label>
+                        <input type="text" id="street_name" name="street_name" class="input-field" value="{{ form.street_name.value|default_if_none:'' }}" placeholder="Street Name">
+                        {% if form.street_name.errors %}
+                            <p class="error-field">{{ form.street_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- PIN Number -->
+                    <div>
+                        <label for="pin_number" class="block text-gray-700 text-sm font-medium mb-2">PIN Number</label>
+                        <input type="number" id="pin_number" name="pin_number" class="input-field" value="{{ form.pin_number.value|default_if_none:'' }}" placeholder="123456">
+                        {% if form.pin_number.errors %}
+                            <p class="error-field">{{ form.pin_number.errors.0 }}</p>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <div>
-                    <label for="house_name" class="block text-sm font-medium text-gray-700">House Name</label>
-                    <input type="text" name="house_name" id="house_name" value="{{ form.house_name.value }}" required
-                        class="mt-1 px-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    {% if form.house_name.errors %}
-                    <p class="text-red-500 text-xs italic mt-2">{{ form.house_name.errors }}</p>
-                    {% endif %}
-                </div>
+                <!-- Right Column -->
+                <div class="space-y-4">
+                    <!-- District -->
+                    <div>
+                        <label for="district" class="block text-gray-700 text-sm font-medium mb-2">District</label>
+                        <input type="text" id="district" name="district" class="input-field" value="{{ form.district.value|default_if_none:'' }}" placeholder="District">
+                        {% if form.district.errors %}
+                            <p class="error-field">{{ form.district.errors.0 }}</p>
+                        {% endif %}
+                    </div>
 
-                <div>
-                    <label for="street_name" class="block text-sm font-medium text-gray-700">Street Name</label>
-                    <input type="text" name="street_name" id="street_name" value="{{ form.street_name.value }}" required
-                        class="mt-1 px-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    {% if form.street_name.errors %}
-                    <p class="text-red-500 text-xs italic mt-2">{{ form.street_name.errors }}</p>
-                    {% endif %}
-                </div>
+                    <!-- State -->
+                    <div>
+                        <label for="state" class="block text-gray-700 text-sm font-medium mb-2">State</label>
+                        <input type="text" id="state" name="state" class="input-field" value="{{ form.state.value|default_if_none:'' }}" placeholder="State">
+                        {% if form.state.errors %}
+                            <p class="error-field">{{ form.state.errors.0 }}</p>
+                        {% endif %}
+                    </div>
 
-                <div>
-                    <label for="district" class="block text-sm font-medium text-gray-700">District</label>
-                    <input type="text" name="district" id="district" value="{{ form.district.value }}" required
-                        class="mt-1 px-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    {% if form.district.errors %}
-                    <p class="text-red-500 text-xs italic mt-2">{{ form.district.errors }}</p>
-                    {% endif %}
-                </div>
+                    <!-- Country -->
+                    <div>
+                        <label for="country" class="block text-gray-700 text-sm font-medium mb-2">Country</label>
+                        <input type="text" id="country" name="country" class="input-field" value="{{ form.country.value|default_if_none:'' }}" placeholder="Country">
+                        {% if form.country.errors %}
+                            <p class="error-field">{{ form.country.errors.0 }}</p>
+                        {% endif %}
+                    </div>
 
-                <div>
-                    <label for="state" class="block text-sm font-medium text-gray-700">State</label>
-                    <input type="text" name="state" id="state" value="{{ form.state.value }}" required
-                        class="mt-1 px-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    {% if form.state.errors %}
-                    <p class="text-red-500 text-xs italic mt-2">{{ form.state.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="country" class="block text-sm font-medium text-gray-700">Country</label>
-                    <input type="text" name="country" id="country" value="{{ form.country.value }}" required
-                        class="mt-1 px-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    {% if form.country.errors %}
-                    <p class="text-red-500 text-xs italic mt-2">{{ form.country.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="pin_number" class="block text-sm font-medium text-gray-700">Pin Number</label>
-                    <input type="text" name="pin_number" id="pin_number" value="{{ form.pin_number.value }}" required
-                        class="mt-1 px-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    {% if form.pin_number.errors %}
-                    <p class="text-red-500 text-xs italic mt-2">{{ form.pin_number.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div>
-                    <label for="phone_number" class="block text-sm font-medium text-gray-700">Phone Number</label>
-                    <input type="text" name="phone_number" id="phone_number" value="{{ form.phone_number.value }}" required
-                        class="mt-1 px-4 py-2 border border-gray-300 rounded-md w-full focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    {% if form.phone_number.errors %}
-                    <p class="text-red-500 text-xs italic mt-2">{{ form.phone_number.errors }}</p>
-                    {% endif %}
-                </div>
-
-                <div class="flex items-center">
-                    <input type="checkbox" name="status" id="status" {% if form.status.value %}checked{% endif %}
-                        class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                    <label for="status" class="ml-2 block text-sm text-gray-900">Set as Default Address</label>
+                    <!-- Phone Number -->
+                    <div>
+                        <label for="phone_number" class="block text-gray-700 text-sm font-medium mb-2">Phone Number</label>
+                        <input type="text" id="phone_number" name="phone_number" class="input-field" value="{{ form.phone_number.value|default_if_none:'' }}" placeholder="+1234567890">
+                        {% if form.phone_number.errors %}
+                            <p class="error-field">{{ form.phone_number.errors.0 }}</p>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
 
-            <div class="mt-6">
-                <button type="submit"
-                    class="w-full bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition focus:outline-none focus:ring-2 focus:ring-blue-500">
-                    Save Address
-                </button>
+            <!-- Default Address Checkbox -->
+            <div class="flex items-center mt-6">
+                <input type="checkbox" id="status" name="status" class="checkbox-field" {% if form.status.value %} checked {% endif %}>
+                <label for="status" class="ml-2 text-sm text-gray-700">Set as default address</label>
             </div>
 
+            <!-- Submit Button -->
+            <button type="submit"
+                    class="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-full font-semibold hover:opacity-90 transition-opacity focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 mt-6">
+                Save Changes
+            </button>
+
+            <!-- Cancel Link -->
             <div class="mt-4 text-center">
                 <a href="{% url 'userpanel:view_profile' %}" class="text-blue-500 hover:text-blue-700 transition">Cancel</a>
             </div>
         </form>
     </div>
 </div>
+
+
 {% endblock %}

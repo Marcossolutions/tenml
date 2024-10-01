@@ -28,11 +28,11 @@
             </div>
         </header>
 
-        <div class="card-body">
+        <div class="card-body" >
             <div class="table-responsive">
                 <table class="table table-hover">
                     <thead>
-                        <tr>
+                        <tr style="font-size: 1rem;">
                             <th>#ID</th>
                             <th>User</th>
                             <th>Total Amount</th>
@@ -43,7 +43,7 @@
                             <th class="text-center">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody style="font-size: 1rem;">
                         {% for return_request in page_obj %}
                         <tr id="return-request-{{ return_request.id }}">
                             <td>{{ return_request.order.order_id }}</td>
@@ -100,9 +100,10 @@
         </nav>
     </div>
 </section>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
     function handleReturnRequest(requestId, action) {
-        console.log(requestId)
         fetch(`{% url 'orders:handle_return_request' 0 %}`.replace('0', requestId), {
             method: 'POST',
             headers: {
@@ -117,20 +118,64 @@
                 // Update the status cell
                 const statusCell = document.querySelector(`#return-request-${requestId} .status-cell`);
                 statusCell.innerHTML = `<span class="badge rounded-pill ${data.status === 'Approved' ? 'bg-success' : 'bg-danger'}">${data.status}</span>`;
-                
+    
                 // Update the action cell
                 const actionCell = document.querySelector(`#return-request-${requestId} .action-cell`);
                 actionCell.innerHTML = '<span class="text-muted">Processed</span>';
     
-                // Show message
-                alert(data.message);
+                // Show success message using SweetAlert2 with the response message
+                Swal.fire({
+                    toast: true,
+                    position: 'top-right',
+                    icon: 'success',
+                    title: data.message,  // Pass the message here
+                    showConfirmButton: false,
+                    timer: 3000,
+                    background: '#2D3748',
+                    color: '#E2E8F0',
+                    iconColor: '#48BB78',
+                    customClass: {
+                        popup: 'swal-toast-popup',
+                        title: 'swal-toast-title',
+                    },
+                    showCloseButton: true,
+                    closeButtonHtml: '×',
+                    timerProgressBar: true,
+                    didOpen: (toast) => {
+                        toast.addEventListener('mouseenter', Swal.stopTimer);
+                        toast.addEventListener('mouseleave', Swal.resumeTimer);
+                    }
+                });
             }
         })
         .catch(error => {
             console.error('Error:', error);
-            alert('An error occurred while processing the request. Please try again.');
+            // Show error message using SweetAlert2
+            Swal.fire({
+                toast: true,
+                position: 'top-right',
+                icon: 'error',
+                title: 'An error occurred while processing the request. Please try again.',
+                showConfirmButton: false,
+                timer: 3000,
+                background: '#2D3748',
+                color: '#E2E8F0', 
+                iconColor: '#F56565',
+                customClass: {
+                    popup: 'swal-toast-popup',
+                    title: 'swal-toast-title',
+                },
+                showCloseButton: true,
+                closeButtonHtml: '×',
+                timerProgressBar: true,
+                didOpen: (toast) => {
+                    toast.addEventListener('mouseenter', Swal.stopTimer);
+                    toast.addEventListener('mouseleave', Swal.resumeTimer);
+                }
+            });
         });
     }
     </script>
+    
 
 {% endblock %}
