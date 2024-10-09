@@ -238,13 +238,13 @@ def return_request(request,order_id):
 
     return render (request,'userpart/order/return_order.html',{'order':order})
     
-@login_required
+@login_required(login_url='/login/')
 def wishlist(request):
     wishlist_items=Wishlist.objects.filter(user=request.user).select_related('variant')
     context = {'wishlist_items': wishlist_items}
     return render(request, 'userpart/user_interface/wishlist.html',context)
 
-@login_required
+@login_required(login_url='/login/')
 def toggle_wishlist(request):
     if request.method == 'POST':
         variant_id = request.POST.get('variant_id')
@@ -261,8 +261,23 @@ def toggle_wishlist(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+
+@login_required(login_url='/login/')
+def check_wishlist(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'in_wishlist': False})
     
-@login_required
+    variant_id = request.GET.get('variant_id')
+    try:
+        variant = ProductVariant.objects.get(id=variant_id)
+        is_in_wishlist = Wishlist.objects.filter(user=request.user, variant=variant).exists()
+        return JsonResponse({'in_wishlist': is_in_wishlist})
+    except ProductVariant.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Variant not found'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+    
+@login_required(login_url='/login/')
 def remove_from_wishlist(request):
     if request.method =='POST':
         wishlist_id = request.POST.get('wishlist_id')

@@ -281,7 +281,7 @@ def check_variant_in_cart(request):
 
 
 def shop_page(request):
-    categories = Category.objects.all()
+    categories = Category.objects.filter(is_listed=True)
     products = Product.objects.filter(is_active=True).prefetch_related(
         Prefetch('productvariant_set', queryset=ProductVariant.objects.filter(variant_status=True))
     )

@@ -1,3 +1,4 @@
+from django.db import IntegrityError
 from account.models import User
 
 def save_user_details(strategy, details, user=None, *args, **kwargs):
@@ -13,15 +14,23 @@ def save_user_details(strategy, details, user=None, *args, **kwargs):
     if not all(fields.values()):
         return strategy.redirect('/some-error-page/') 
     
-    user = User.objects.create_user(
-        email=fields['email'],
-        username=fields['first_name'],
-        phone_number=details.get('phone_number', ''), 
-    )
-    return {
-        'is_new': True,
-        'user': user
-    }
+    try:
+        user = User.objects.create_user(
+            email=fields['email'],
+            username=fields['first_name'],
+            phone_number=details.get('phone_number', ''), 
+        )
+        return {
+            'is_new': True,
+            'user': user
+        }
+    except IntegrityError:
+        # User with this email already exists
+        user = User.objects.get(email=fields['email'])
+        return {
+            'is_new': False,
+            'user': user
+        }
 
 def set_user_phone_number(backend, user, response, *args, **kwargs):
     phone_number = response.get('phone_number')
@@ -42,4 +51,4 @@ def check_if_user_blocked(user, *args, **kwargs):
     return {
         'is_blocked': False,
         'user': user
-    }
+    } 

@@ -30,6 +30,9 @@ def cart_view(request):
 
 @login_required(login_url='/login/')
 def add_to_cart(request):
+    if not request.user.is_authenticated:
+        return JsonResponse({'status': 'unauthenticated', 'message': 'Please login to add items to your cart.'}, status=403)
+
     if request.method == 'POST':
         product_id = request.POST.get('product_id')
         variant_id = request.POST.get('variant_id')
@@ -61,6 +64,7 @@ def add_to_cart(request):
         return JsonResponse({'status': 'success', 'message': 'Item added to cart.', 'cart_total': cart.get_total()})
 
     return JsonResponse({'status': 'error', 'message': 'Invalid request method.'}, status=400)
+
 
 @login_required(login_url='/login/')
 def update_cart_item(request, item_id):

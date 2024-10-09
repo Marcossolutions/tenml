@@ -333,6 +333,7 @@ function checkVariantInCart(variantId) {
 
 function handleAddToCart(e) {
     e.preventDefault();
+
     if (!selectedVariantId) {
         Swal.fire({
             position: 'top-end',
@@ -359,9 +360,19 @@ function handleAddToCart(e) {
             'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        // Check if the response is HTML instead of JSON
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('text/html')) {
+            // If HTML is returned, it's likely a redirect to the login page
+            window.location.href = '/login/';
+            return;
+        }
+        return response.json();
+    })
     .then(data => {
         addToCartBtn.disabled = false;
+
         if (data.status === 'success') {
             Swal.fire({
                 position: 'top-end',
@@ -374,6 +385,10 @@ function handleAddToCart(e) {
             addToCartBtn.textContent = 'Go to Cart';
             addToCartBtn.removeEventListener('click', handleAddToCart);
             addToCartBtn.addEventListener('click', goToCart);
+
+        } else if (data.status === 'unauthenticated') {
+            // If unauthenticated, redirect to login
+            window.location.href = '/login/';
         } else {
             Swal.fire({
                 position: 'top-end',
@@ -385,19 +400,9 @@ function handleAddToCart(e) {
             });
         }
     })
-    .catch(error => {
-        addToCartBtn.disabled = false;
-        Swal.fire({
-            position: 'top-end',
-            icon: 'error',
-            title: 'An error occurred',
-            showConfirmButton: false,
-            timer: 2000,
-            toast: true
-        });
-        console.error('Error:', error);
-    });
+
 }
+
 
 function goToCart() {
     window.location.href = "{% url 'cart:cart_view' %}";
@@ -422,97 +427,89 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 <script>
     const addToWishlistBtn = document.getElementById('add-to-wishlist-btn');
-
-function handleAddToWishlist(e) {
-    e.preventDefault();
-    if (!selectedVariantId) {
-        Swal.fire({
-            position: 'top-end',
-            icon: 'error',
-            title: 'Please select a size',
-            showConfirmButton: false,
-            timer: 2000,
-            toast: true
-        });
-        return;
-    }
-
-    // Disable the button to prevent multiple clicks
-    addToWishlistBtn.disabled = true;
-
-    const formData = new FormData();
-    formData.append('variant_id', selectedVariantId);
-
-    fetch('{% url "userpanel:toggle_wishlist" %}', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        addToWishlistBtn.disabled = false;
-        if (data.status === 'added') {
-            Swal.fire({
-                position: 'top-end',
-                icon: 'success',
-                title: 'Added to wishlist!',
-                showConfirmButton: false,
-                timer: 2000,
-                toast: true
-            });
-            addToWishlistBtn.textContent = 'Remove from Wishlist';
-            addToWishlistBtn.classList.remove('bg-red-500');
-            addToWishlistBtn.classList.add('bg-gray-500');
-        } else if (data.status === 'removed') {
-            Swal.fire({
-                position: 'top-end',
-                icon: 'success',
-                title: 'Removed from wishlist',
-                showConfirmButton: false,
-                timer: 2000,
-                toast: true
-            });
-            addToWishlistBtn.textContent = 'Add to Wishlist';
-            addToWishlistBtn.classList.remove('bg-gray-500');
-            addToWishlistBtn.classList.add('bg-red-500');
-        } else {
+    
+    function handleAddToWishlist(e) {
+        e.preventDefault();
+        if (!selectedVariantId) {
             Swal.fire({
                 position: 'top-end',
                 icon: 'error',
-                title: data.message || 'Failed to update wishlist',
+                title: 'Please select a size',
                 showConfirmButton: false,
                 timer: 2000,
                 toast: true
             });
+            return;
         }
-    })
-    .catch(error => {
-        addToWishlistBtn.disabled = false;
-        Swal.fire({
-            position: 'top-end',
-            icon: 'error',
-            title: 'An error occurred',
-            showConfirmButton: false,
-            timer: 2000,
-            toast: true
+        // Disable the button to prevent multiple clicks
+        addToWishlistBtn.disabled = true;
+        const formData = new FormData();
+        formData.append('variant_id', selectedVariantId);
+        fetch('{% url "userpanel:toggle_wishlist" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            }
+        })
+        .then(response => {
+            if (response.redirected) {
+                // If the response is a redirect, go to the login page
+                window.location.href = response.url;
+                return;
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (!data) return; // If we redirected, data will be undefined
+            addToWishlistBtn.disabled = false;
+            if (data.status === 'added') {
+                Swal.fire({
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Added to wishlist!',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    toast: true
+                });
+                addToWishlistBtn.textContent = 'Remove from Wishlist';
+                addToWishlistBtn.classList.remove('bg-red-500');
+                addToWishlistBtn.classList.add('bg-gray-500');
+            } else if (data.status === 'removed') {
+                Swal.fire({
+                    position: 'top-end',
+                    icon: 'success',
+                    title: 'Removed from wishlist',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    toast: true
+                });
+                addToWishlistBtn.textContent = 'Add to Wishlist';
+                addToWishlistBtn.classList.remove('bg-gray-500');
+                addToWishlistBtn.classList.add('bg-red-500');
+            } else {
+                Swal.fire({
+                    position: 'top-end',
+                    icon: 'error',
+                    title: data.message || 'Failed to update wishlist',
+                    showConfirmButton: false,
+                    timer: 2000,
+                    toast: true
+                });
+            }
+        })
+        .catch(error => {
+            addToWishlistBtn.disabled = false;
+            console.error('Error:', error);
         });
-        console.error('Error:', error);
-    });
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Remove any existing event listeners and add the correct one
-    addToWishlistBtn.removeEventListener('click', handleAddToWishlist);
-
-    if (addToWishlistBtn.textContent.trim() === 'Add to Wishlist') {
-        addToWishlistBtn.addEventListener('click', handleAddToWishlist);
-    } else {
-        addToWishlistBtn.addEventListener('click', handleRemoveFromWishlist);
     }
-});
-</script>
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Remove any existing event listeners and add the correct one
+        addToWishlistBtn.removeEventListener('click', handleAddToWishlist);
+        addToWishlistBtn.addEventListener('click', handleAddToWishlist);
+    });
+    </script>
 
 
 <script>

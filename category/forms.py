@@ -1,4 +1,8 @@
+from typing import Any, Mapping
 from django import forms
+from django.core.files.base import File
+from django.db.models.base import Model
+from django.forms.utils import ErrorList
 from .models import Category
 from django.core.exceptions import ValidationError
 
@@ -13,6 +17,12 @@ class Categoryforms(forms.ModelForm):
             'is_listed' : forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         
+    def __init__(self, *args, **kwargs):
+        self.instance = kwargs.get('instance')  # Store the instance for editing
+        super(Categoryforms, self).__init__(*args, **kwargs)
+    
+    
+    
     def clean_category_name(self):
         category_name = self.cleaned_data.get('category_name')
         
@@ -21,15 +31,20 @@ class Categoryforms(forms.ModelForm):
             raise ValidationError("Category name must be at least 3 characters long.")
         
         # Check if the category name contains only alphanumeric characters and spaces
-        if not category_name.replace(' ', '').isalnum():
-            raise ValidationError("Category name can only contain letters, numbers, and spaces.")
-        
-        # Check if the category name already exists (case-insensitive)
-        if Category.objects.filter(category_name__iexact=category_name).exists():
-            raise ValidationError("A category with this name already exists.")
-        
-        return category_name
+        allowed_chars = set("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 &-")
+        if not set(category_name).issubset(allowed_chars):
+            raise ValidationError("Category name can only contain letters, numbers, spaces, &, and -.")
 
+        # Check if the category name already exists, excluding the current instance (if editing)
+        # This ensures that you only perform the uniqueness check during creation or if the name is changing
+        category_qs = Category.objects.filter(category_name__iexact=category_name)
+        if self.instance:  # If we are editing, exclude the current category from the check
+            category_qs = category_qs.exclude(id=self.instance.id)
+        
+        if category_qs.exists():
+            raise ValidationError("A category with this name already exists.")
+
+        return category_name
     def clean_category_image(self):
         category_image = self.cleaned_data.get('category_image')
         if category_image:

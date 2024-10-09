@@ -14,6 +14,7 @@ urlpatterns = [
     path('order/<str:order_id>/',views.order_detail,name='order_detail'),
     path('return-request/<str:order_id>/', views.return_request, name='return_request'),
     path('toggle-wishlist/', views.toggle_wishlist, name='toggle_wishlist'),
+    path('check-wishlist/', views.check_wishlist, name='check_wishlist'),
     path('wishlist/',views.wishlist,name='wishlist'),
     path('remove-from-wishlist/',views.remove_from_wishlist,name='remove_from_wishlist'),
     path('download_invoice/<int:order_id>/', views.download_invoice, name='download_invoice'),
